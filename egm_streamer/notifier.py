@@ -15,17 +15,17 @@ class TelegramNotifier:
         
         # State descriptions
         state_info = {
-            "PLAYING": ("Free Game 遊戲中"),
-            "SELECT": ("Free Game 選擇畫面"),
-            "NORMAL": ("一般遊戲畫面"),
-            "OTHER": ("未知狀態"),
-            "UNKNOWN": ("偵測中斷"),
+            "PLAYING": "🎰 Free Game 遊戲中",
+            "SELECT": "🎯 Free Game 選擇畫面",
+            "NORMAL": "📺 一般遊戲畫面",
+            "OTHER": "❓ 未知狀態",
+            "UNKNOWN": "⚠️ 偵測中斷",
         }
         
-        emoji, desc = state_info.get(new_state, ("❓", new_state))
+        desc = state_info.get(new_state, f"❓ {new_state}")
         
         msg = (
-            f"{emoji} <b>{desc}</b>\n"
+            f"<b>{desc}</b>\n"
             f"<code>{self.instance_id}</code> | {time.strftime('%H:%M:%S')}"
         )
         

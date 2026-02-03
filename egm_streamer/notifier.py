@@ -12,13 +12,21 @@ class TelegramNotifier:
     def send_state_change(self, prev_state: str, new_state: str):
         if not self.config.enabled or not self.config.bot_token or not self.config.chat_id:
             return
-            
+        
+        # State descriptions
+        state_info = {
+            "PLAYING": ("Free Game 遊戲中"),
+            "SELECT": ("Free Game 選擇畫面"),
+            "NORMAL": ("一般遊戲畫面"),
+            "OTHER": ("未知狀態"),
+            "UNKNOWN": ("偵測中斷"),
+        }
+        
+        emoji, desc = state_info.get(new_state, ("❓", new_state))
+        
         msg = (
-            f"🔔 <b>EGM Status Change</b>\n"
-            f"ID: <code>{self.instance_id}</code>\n"
-            f"From: <b>{prev_state}</b>\n"
-            f"To: <b>{new_state}</b>\n"
-            f"Time: {time.strftime('%Y-%m-%d %H:%M:%S')}"
+            f"{emoji} <b>{desc}</b>\n"
+            f"<code>{self.instance_id}</code> | {time.strftime('%H:%M:%S')}"
         )
         
         # Fire and forget thread

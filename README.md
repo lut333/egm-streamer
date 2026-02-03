@@ -64,11 +64,11 @@ source venv/bin/activate
 pip install . --upgrade
 
 # 3. 重啟服務
-# 假設您的實例名稱為 egm-101
-sudo systemctl restart egm-detector@egm-101
+# 假設您的實例名稱為 egm-100
+sudo systemctl restart egm-streamer@egm-100
 
 # 如果是多台實例，可批量重啟
-# sudo systemctl restart 'egm-detector@*'
+# sudo systemctl restart 'egm-streamer@*'
 ```
 
 ## 設定與使用
@@ -94,12 +94,9 @@ streams:
       gop: 30
       
   cam:
-    enabled: true
-    input_device: "/dev/video2"    # USB 攝影機
-    rtmp_url: "rtmp://192.168.1.100:1935/game/101_cam"
-    ffmpeg_params:
-      preset: "ultrafast"
-      tune: "zerolatency"
+    enabled: false # 若不使用可設為 false
+    # input_device: "/dev/video2" 
+    # rtmp_url: "rtmp://192.168.1.100:1935/game/101_cam"
 
 detector:
   enabled: true
@@ -108,7 +105,7 @@ detector:
   # 狀態比對設定...
   states:
     NORMAL:
-      refs_dir: "/var/lib/egm-detector/refs/normal"
+      refs_dir: "/var/lib/egm-streamer/refs/normal"
       # ...
 ```
 
@@ -116,14 +113,14 @@ detector:
 
 ```bash
 # 啟動並監聽 8080 port
-egm-detector serve --config my_config.yaml
+egm-streamer serve --config my_config.yaml
 ```
 
 成功啟動後，請打開瀏覽器訪問管理介面：
 👉 **http://localhost:8080/**
 
 在管理介面上，您可以：
-- 查看各 Stream 的 FPS 與 Bitrate。
+- 查看各 Stream 的 FPS, Bitrate, Speed 與 Frames。
 - 啟動/停止/重啟個別 Stream。
 - 查看當前偵測到的遊戲狀態 (Normal/Select/Playing)。
 - **一鍵採集參考圖**：點選 Tab 切換狀態，按下 "Capture Current as Reference" 即可將當前遊戲畫面存為該狀態的參考圖。
@@ -149,15 +146,16 @@ egm-detector serve --config my_config.yaml
 
 ```bash
 cd /opt/egm-streamer
-sudo cp egm-detector@.service /etc/systemd/system/
+sudo cp egm-streamer@.service /etc/systemd/system/
 sudo systemctl daemon-reload
 ```
 
-這份 service 檔案預設使用 `/opt/egm-streamer/venv/bin/egm-detector` 作為執行檔路徑。
+這份 service 檔案預設使用 `/opt/egm-streamer/venv/bin/egm-streamer` 作為執行檔路徑。
 
 ### 2. 建立設定檔
 
 設定檔需放在 `/etc/egm-detector/`，檔名需對應您的 **實例名稱** (例如 `egm-100`)。
+*(注意：為了相容性，目前設定檔目錄仍維持在 `/etc/egm-detector/`)*
 
 ```bash
 sudo mkdir -p /etc/egm-detector
@@ -171,24 +169,24 @@ sudo cp my_config.yaml /etc/egm-detector/egm-100.yaml
 
 ```bash
 # 設為開機自動啟動並立即執行
-sudo systemctl enable --now egm-detector@egm-100
+sudo systemctl enable --now egm-streamer@egm-100
 ```
 
 ### 4. 日常維運指令
 
 - **查看狀態**：
   ```bash
-  sudo systemctl status egm-detector@egm-100
+  sudo systemctl status egm-streamer@egm-100
   ```
 - **查看日誌 (即時)**：
   ```bash
-  journalctl -u egm-detector@egm-100 -f
+  journalctl -u egm-streamer@egm-100 -f
   ```
 - **重啟服務**：
   ```bash
-  sudo systemctl restart egm-detector@egm-100
+  sudo systemctl restart egm-streamer@egm-100
   ```
 - **停止服務**：
   ```bash
-  sudo systemctl stop egm-detector@egm-100
+  sudo systemctl stop egm-streamer@egm-100
   ```

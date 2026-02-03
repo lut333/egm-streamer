@@ -7,7 +7,7 @@ Type=simple
 # User=egm-detector
 # Group=egm-detector
 # Adjust path to your venv or global python
-ExecStart=/opt/egm-streamer/venv/bin/egm-detector serve --config /etc/egm-detector/%i.yaml
+ExecStart=/opt/egm-streamer/venv/bin/egm-streamer serve --config /etc/egm-detector/%i.yaml
 Restart=always
 RestartSec=5
 

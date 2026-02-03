@@ -154,13 +154,12 @@ sudo systemctl daemon-reload
 
 ### 2. 建立設定檔
 
-設定檔需放在 `/etc/egm-detector/`，檔名需對應您的 **實例名稱** (例如 `egm-100`)。
-*(注意：為了相容性，目前設定檔目錄仍維持在 `/etc/egm-detector/`)*
+設定檔需放在 `/etc/egm-streamer/`，檔名需對應您的 **實例名稱** (例如 `egm-100`)。
 
 ```bash
-sudo mkdir -p /etc/egm-detector
+sudo mkdir -p /etc/egm-streamer
 # 假設您目前的設定檔為 my_config.yaml
-sudo cp my_config.yaml /etc/egm-detector/egm-100.yaml
+sudo cp my_config.yaml /etc/egm-streamer/egm-100.yaml
 ```
 
 ### 3. 啟動服務

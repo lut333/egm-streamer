@@ -7,12 +7,13 @@ Type=simple
 # User=egm-detector
 # Group=egm-detector
 # Adjust path to your venv or global python
-ExecStart=/opt/egm-streamer/venv/bin/egm-streamer serve --config /etc/egm-detector/%i.yaml
+# Adjust path to your venv or global python
+ExecStart=/opt/egm-streamer/venv/bin/egm-streamer serve --config /etc/egm-streamer/%i.yaml
 Restart=always
 RestartSec=5
 
 # Create runtime dir for status files if needed
-RuntimeDirectory=egm-detector/%i
+RuntimeDirectory=egm-streamer/%i
 RuntimeDirectoryMode=0755
 Environment=PYTHONUNBUFFERED=1
 

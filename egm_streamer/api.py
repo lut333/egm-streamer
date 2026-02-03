@@ -153,17 +153,23 @@ def control_stream(name: str, req: StreamControlReq):
 
 # --- Reference Management ---
 
+#Helper to get config independent of detector state
+def get_detector_config():
+    if detector_instance:
+        return detector_instance.config.detector
+    if app_config:
+        return app_config.detector
+    raise HTTPException(500, "Configuration not loaded")
+
 @app.get("/api/refs/{state}")
 def list_refs(state: str):
     """List reference images for a given state"""
-    if not detector_instance:
-         raise HTTPException(500, "Detector not initialized")
+    det_cfg = get_detector_config()
          
-    states_cfg = detector_instance.config.detector.states
-    if state not in states_cfg:
+    if state not in det_cfg.states:
         raise HTTPException(404, "State not found")
         
-    ref_dir = Path(states_cfg[state].refs_dir)
+    ref_dir = Path(det_cfg.states[state].refs_dir)
     if not ref_dir.exists():
         return []
         
@@ -174,18 +180,26 @@ def list_refs(state: str):
 @app.post("/api/refs/{state}")
 def add_ref(state: str):
     """Capture current frame and save as reference for state"""
-    if not detector_instance:
-         raise HTTPException(500, "Detector not initialized")
+    det_cfg = get_detector_config()
     
-    states_cfg = detector_instance.config.detector.states
-    if state not in states_cfg:
+    if state not in det_cfg.states:
         raise HTTPException(404, "State not found")
         
-    # Capture NOW
-    try:
-        tmp_path = detector_instance.capturer.capture()
+    # Capture logic optimized: STRICTLY use existing snapshot
+    # User Requirement: No fallback. If snapshot service (detector function) is off, error out.
+    
+    if not app_config or not app_config.snapshot.enabled:
+        raise HTTPException(400, "Reference capture failed: Snapshot service is disabled. Please enable 'snapshot' in config.")
+
+    snap_path = Path(app_config.snapshot.output_path)
+    if not snap_path.exists():
+        # Even if enabled, file might not be ready
+        raise HTTPException(400, "Reference capture failed: Snapshot file not found. Service might be starting or failed.")
         
-        ref_dir = Path(states_cfg[state].refs_dir)
+    tmp_path = str(snap_path)
+    print(f"[API] Using background snapshot: {tmp_path}")
+
+        ref_dir = Path(det_cfg.states[state].refs_dir)
         ref_dir.mkdir(parents=True, exist_ok=True)
         
         ts = int(time.time())
@@ -194,8 +208,9 @@ def add_ref(state: str):
         
         shutil.copy(tmp_path, dst)
         
-        # Reload detector refs
-        detector_instance.ref_mgr.load_all()
+        # Reload detector refs if running
+        if detector_instance:
+            detector_instance.ref_mgr.load_all()
         
         return {"status": "saved", "filename": filename}
     except Exception as e:
@@ -203,38 +218,35 @@ def add_ref(state: str):
 
 @app.get("/api/refs/{state}/{filename}/image")
 def get_ref_image(state: str, filename: str):
-    if not detector_instance:
-         raise HTTPException(500, "Detector not initialized")
+    det_cfg = get_detector_config()
          
-    states_cfg = detector_instance.config.detector.states
-    if state not in states_cfg:
+    if state not in det_cfg.states:
         raise HTTPException(404, "State not found")
         
-    ref_dir = Path(states_cfg[state].refs_dir)
+    ref_dir = Path(det_cfg.states[state].refs_dir)
     path = ref_dir / filename
     
     if path.exists():
         from fastapi.responses import FileResponse
-        return FileResponse(path)
+        return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "max-age=3600"})
     else:
         raise HTTPException(404, "File not found")
 
 @app.delete("/api/refs/{state}/{filename}")
 def delete_ref(state: str, filename: str):
-    if not detector_instance:
-         raise HTTPException(500, "Detector not initialized")
+    det_cfg = get_detector_config()
          
-    states_cfg = detector_instance.config.detector.states
-    if state not in states_cfg:
+    if state not in det_cfg.states:
         raise HTTPException(404, "State not found")
         
-    ref_dir = Path(states_cfg[state].refs_dir)
+    ref_dir = Path(det_cfg.states[state].refs_dir)
     path = ref_dir / filename
     
     if path.exists():
         path.unlink()
-        # Reload detector refs
-        detector_instance.ref_mgr.load_all()
+        # Reload detector refs if running
+        if detector_instance:
+             detector_instance.ref_mgr.load_all()
         return {"status": "deleted"}
     else:
         raise HTTPException(404, "File not found")

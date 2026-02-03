@@ -21,7 +21,7 @@ class StateConfig(BaseModel):
     match_policy: MatchPolicy = Field(default_factory=MatchPolicy)
 
 class StreamConfig(BaseModel):
-    url: str
+    url: Optional[str] = None
     capture_interval: float = 1.0
     scale: str = "640:-1"
     rw_timeout_us: int = 5000000

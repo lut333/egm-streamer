@@ -84,11 +84,15 @@ class Streamer:
         cmd += [
             "-c:v", "libx264", 
             "-profile:v", "main", 
-            "-crf", "18", "-pix_fmt", "yuv420p",
+            "-pix_fmt", "yuv420p",
+            # CBR mode for stable streaming (prevents buffer accumulation)
+            "-b:v", self.config.bitrate,
+            "-maxrate", self.config.bitrate,
+            "-bufsize", self.config.bitrate,  # Same as bitrate for tight control
             "-g", str(p.gop), 
-            "-x264-params", f"scenecut=0:keyint={p.gop}:min-keyint={p.gop}", 
+            "-x264-params", f"scenecut=0:keyint={p.gop}:min-keyint={p.gop}:nal-hrd=cbr", 
             "-tune", p.tune, 
-            "-preset", p.preset, # preset should be strictly ultrafast/superfast for low latency
+            "-preset", p.preset,
             "-f", "flv", self.config.rtmp_url
         ]
         

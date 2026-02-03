@@ -31,8 +31,9 @@ sudo usermod -aG video $USER
 
 ```bash
 cd /opt
-sudo git clone https://github.com/lut333/egm-streamer.git egm-detector
-cd egm-detector
+sudo git clone https://github.com/lut333/egm-streamer.git egm-streamer
+cd egm-streamer
+sudo chown -R $USER:$USER .
 ```
 
 ### 3. 安裝 Python 模組
@@ -53,7 +54,7 @@ pip install .
 當服務有新版本發佈時，請依照以下步驟更新：
 
 ```bash
-cd /opt/egm-detector
+cd /opt/egm-streamer
 
 # 1. 拉取最新程式碼
 sudo git pull

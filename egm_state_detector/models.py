@@ -66,13 +66,9 @@ class DetectorConfigWrapper(BaseModel):
     enabled: bool = True
     target_stream: str = "game"  # Name of the stream to capture from
     
-    # If target_stream is set, 'capture' config might be derived or separate.
-    # We still need capture config for the detector's internal capture logic (it usually RTMP pulls).
-    # But cleaner to say "source_url" is optional and if missing, grab from streams[target_stream].rtmp_url
-    
     capture: StreamConfig = Field(default_factory=lambda: StreamConfig(url=""))
     detection: DetectionConfig = Field(default_factory=DetectionConfig)
-    states: Dict[str, StateConfig]
+    states: Dict[str, StateConfig] = Field(default_factory=dict)
     priority: List[str] = ["SELECT", "PLAYING", "NORMAL"]
     debounce: DebounceConfig = Field(default_factory=DebounceConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
@@ -83,9 +79,9 @@ class CommonConfig(BaseModel):
 
 class AppConfig(BaseModel):
     common: CommonConfig = Field(default_factory=CommonConfig)
-    # Changed from single streamer to dict of streamers
     streams: Dict[str, StreamerConfig] = Field(default_factory=dict)
-    detector: DetectorConfigWrapper
+    # Default detector to disabled if not provided
+    detector: DetectorConfigWrapper = Field(default_factory=lambda: DetectorConfigWrapper(enabled=False, states={}))
     api: ApiConfig = Field(default_factory=ApiConfig)
 
 # Runtime Models

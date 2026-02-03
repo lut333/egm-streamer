@@ -12,6 +12,7 @@ dependencies = [
     "imagehash>=4.3",
     "PyYAML>=6.0",
     "pydantic>=2.0",
+    "requests>=2.28",
 ]
 requires-python = ">=3.9"
 

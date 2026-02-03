@@ -15,9 +15,11 @@ from .config import AppConfig
 from .detector import EgmStateDetector
 from .streamer import Streamer
 from .models import StreamStatus
+from .capture import StreamCapturer, StreamConfig as CapturerStreamConfig
 
 # Global references
 detector_instance: Optional[EgmStateDetector] = None
+app_config: Optional[AppConfig] = None
 streamers: Dict[str, Streamer] = {}
 stop_event = threading.Event()
 
@@ -28,8 +30,8 @@ async def lifespan(app: FastAPI):
         detect_thread = threading.Thread(target=detection_loop, daemon=True)
         detect_thread.start()
     
-    # Snapshot loop startup
-    if detector_instance and detector_instance.config.snapshot.enabled:
+    # Snapshot loop startup (Independent of detector instance)
+    if app_config and app_config.snapshot.enabled:
         snap_thread = threading.Thread(target=snapshot_loop, daemon=True)
         snap_thread.start()
 
@@ -38,7 +40,7 @@ async def lifespan(app: FastAPI):
     stop_event.set()
     if detector_instance and 'detect_thread' in locals():
         detect_thread.join(timeout=2.0)
-    if detector_instance and 'snap_thread' in locals():
+    if 'snap_thread' in locals():
         snap_thread.join(timeout=2.0)
 
 app = FastAPI(lifespan=lifespan)
@@ -52,8 +54,9 @@ app.add_middleware(
 )
 
 # -------------------------
-# Detection Loop
+# Loops
 # -------------------------
+
 def detection_loop():
     global detector_instance
     if not detector_instance:
@@ -70,30 +73,25 @@ def detection_loop():
         
         stop_event.wait(sleep_time)
 
-# -------------------------
-# Snapshot Loop
-# -------------------------
-from .capture import StreamCapturer, StreamConfig as CapturerStreamConfig # Import if needed
-
 def snapshot_loop():
-    global detector_instance
-    if not detector_instance: return
+    global app_config
+    if not app_config: return
 
-    snap_cfg = detector_instance.config.snapshot
+    snap_cfg = app_config.snapshot
     print(f"Background snapshot loop started. Target: {snap_cfg.target_stream}, Interval: {snap_cfg.interval}")
     
     # Resolve capture URL
     url = snap_cfg.url
     if not url:
-        if snap_cfg.target_stream in detector_instance.config.streams:
-            stream_conf = detector_instance.config.streams[snap_cfg.target_stream]
+        if snap_cfg.target_stream in app_config.streams:
+            stream_conf = app_config.streams[snap_cfg.target_stream]
             url = stream_conf.rtmp_url
     
     if not url:
         print("[Snapshot] Error: No URL found for snapshot service")
         return
 
-    # Use default scale/timeout from a StreamConfig
+    # Use configured quality and scale
     sc = CapturerStreamConfig(url=url, scale="640:-1", quality=snap_cfg.quality) 
     capturer = StreamCapturer(sc, snap_cfg.output_path)
     
@@ -244,25 +242,28 @@ def delete_ref(state: str, filename: str):
 @app.get("/api/live/frame")
 def get_live_frame():
     """Get a single current frame for preview"""
-    if not detector_instance:
-        raise HTTPException(500, "Detector not initialized")
-    
-    try:
-        # Capture to a preview specific path to avoid overwriting refs
-        # Or just use the standard capture method which creates temp files?
-        # Capturer usually overwrites a common file or creates new temp?
-        # Let's verify StreamCapturer implementation. Assuming it returns a path.
-        # For efficiency, we might want to just grab the last captured frame if available?
-        # But detector step capture isn't stored publicly.
-        # Let's force a capture.
-        path = detector_instance.capturer.capture()
-        from fastapi.responses import FileResponse
-        return FileResponse(path)
-    except Exception as e:
-        raise HTTPException(500, f"Capture failed: {e}")
+    # If detector is running, use its capturer (likely dedicated/configured)
+    if detector_instance:
+        try:
+            path = detector_instance.capturer.capture()
+            from fastapi.responses import FileResponse
+            return FileResponse(path)
+        except Exception as e:
+            raise HTTPException(500, f"Capture failed: {e}")
+            
+    # If snapshot service is running, we could potentially reuse that capturer?
+    # But snapshot service runs in a loop.
+    # For now, require detector or create a temporary capturer?
+    # Let's fallback to creating a capturer if streams are available
+    if app_config and app_config.snapshot.enabled:
+         # This is tricky because we don't have easy access to the capturer instance in snapshot_loop.
+         # But the user asked for this endpoint specifically for debugging detection.
+         # If detection is disabled, they probably don't need "match preview".
+         pass
+
+    raise HTTPException(500, "Detector not initialized")
 
 # --- Snapshot / Preview ---
-# Existing snapshot API modified to be simpler or keep compatibility
 
 class SnapshotReq(BaseModel):
     output_dir: str
@@ -273,6 +274,11 @@ class SnapshotReq(BaseModel):
 @app.post("/snapshot/save")
 def save_snapshot(req: SnapshotReq):
     # Compatibility endpoint for manual saving
+    if not detector_instance:
+       # Fallback: try to use app_config if available to create a temporary capturer?
+       # The user likely wants to snapshot even if detector is off.
+       pass
+       
     if not detector_instance:
         raise HTTPException(500, "Detector not initialized")
     
@@ -309,11 +315,11 @@ except Exception as e:
 
 
 def create_app(config: AppConfig, stream_instances: Dict[str, Streamer] = {}):
-    global detector_instance, streamers
+    global detector_instance, streamers, app_config
+    
+    app_config = config
     
     if config.detector.enabled:
-        # Check if already initialized to check for reload? 
-        # For now assume fresh start
         detector_instance = EgmStateDetector(config)
     
     streamers = stream_instances

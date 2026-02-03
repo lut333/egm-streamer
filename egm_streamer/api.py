@@ -180,42 +180,44 @@ def list_refs(state: str):
 @app.post("/api/refs/{state}")
 def add_ref(state: str):
     """Capture current frame and save as reference for state"""
-    det_cfg = get_detector_config()
-    
-    if state not in det_cfg.states:
-        raise HTTPException(404, "State not found")
-        
-    # Capture logic optimized: STRICTLY use existing snapshot
-    # User Requirement: No fallback. If snapshot service (detector function) is off, error out.
-    
-    if not app_config or not app_config.snapshot.enabled:
-        raise HTTPException(400, "Reference capture failed: Snapshot service is disabled. Please enable 'snapshot' in config.")
-
-    snap_path = Path(app_config.snapshot.output_path)
-    if not snap_path.exists():
-        # Even if enabled, file might not be ready
-        raise HTTPException(400, "Reference capture failed: Snapshot file not found. Service might be starting or failed.")
-        
-    tmp_path = str(snap_path)
-    print(f"[API] Using background snapshot: {tmp_path}")
-
-    ref_dir = Path(det_cfg.states[state].refs_dir)
-    ref_dir.mkdir(parents=True, exist_ok=True)
-    
-    ts = int(time.time())
-    filename = f"ref_{ts}.jpg"
-    dst = ref_dir / filename
-    
     try:
+        det_cfg = get_detector_config()
+        
+        if state not in det_cfg.states:
+            raise HTTPException(404, "State not found")
+            
+        # Capture logic optimized: STRICTLY use existing snapshot
+        if not app_config or not app_config.snapshot.enabled:
+            raise HTTPException(400, "Reference capture failed: Snapshot service is disabled. Please enable 'snapshot' in config.")
+
+        snap_path = Path(app_config.snapshot.output_path)
+        if not snap_path.exists():
+            raise HTTPException(400, "Reference capture failed: Snapshot file not found. Service might be starting or failed.")
+            
+        tmp_path = str(snap_path)
+        print(f"[API] Using background snapshot: {tmp_path}")
+
+        ref_dir = Path(det_cfg.states[state].refs_dir)
+        ref_dir.mkdir(parents=True, exist_ok=True)
+        
+        ts = int(time.time())
+        filename = f"ref_{ts}.jpg"
+        dst = ref_dir / filename
+        
         shutil.copy(tmp_path, dst)
+        
+        # Reload detector refs if running
+        if detector_instance:
+            detector_instance.ref_mgr.load_all()
+        
+        return {"status": "saved", "filename": filename}
+
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(500, f"Failed to save reference: {e}")
-    
-    # Reload detector refs if running
-    if detector_instance:
-        detector_instance.ref_mgr.load_all()
-    
-    return {"status": "saved", "filename": filename}
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Critical error in add_ref: {e}")
 
 @app.get("/api/refs/{state}/{filename}/image")
 def get_ref_image(state: str, filename: str):

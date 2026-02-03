@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EGM Stream Manager</title>
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --card: #2d2d2d;
+            --text: #e0e0e0;
+            --primary: #3498db;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2 { margin-bottom: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* Stream Cards */
+        .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+        .card { background: var(--card); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+        .status-running { background: var(--primary); color: white; }
+        .status-stopped { background: #555; color: white; }
+        
+        .controls { margin-top: 15px; display: flex; gap: 10px; }
+        button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; transition: opacity 0.2s; font-weight: bold; }
+        button:hover { opacity: 0.9; }
+        .btn-start { background: var(--success); color: white; }
+        .btn-stop { background: var(--danger); color: white; }
+        .btn-restart { background: var(--primary); color: white; }
+        .btn-save { background: var(--primary); color: white; margin-top: 10px; width: 100%; }
+
+        /* Detection State */
+        .detect-state { font-size: 2em; text-align: center; margin: 20px 0; padding: 20px; background: var(--card); border-radius: 8px; }
+        .state-normal { color: var(--success); }
+        .state-select { color: var(--primary); }
+        .state-playing { color: #f1c40f; }
+        .state-other { color: #7f8c8d; }
+
+        /* Refs Manager */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 10px; }
+        .tab { background: none; color: #888; border: 1px solid transparent; }
+        .tab.active { color: var(--text); border-bottom: 2px solid var(--primary); }
+        
+        .ref-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+        .ref-item { position: relative; aspect-ratio: 4/3; background: #000; overflow: hidden; border-radius: 4px; border: 1px solid #444; }
+        .ref-item img { width: 100%; height: 100%; object-fit: cover; }
+        .ref-actions { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); padding: 5px; text-align: center; opacity: 0; transition: opacity 0.2s; }
+        .ref-item:hover .ref-actions { opacity: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>EGM Stream Manager</h1>
+        
+        <!-- Live Detection State -->
+        <div class="detect-state">
+            Current State: <span id="current-state" class="state-other">LOADING...</span>
+        </div>
+
+        <!-- Streams -->
+        <h2>Streams</h2>
+        <div id="stream-grid" class="grid"></div>
+
+        <!-- Reference Manager -->
+        <h2 style="margin-top: 40px;">Reference Manager</h2>
+        <div class="card">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('NORMAL')">Normal</button>
+                <button class="tab" onclick="switchTab('SELECT')">Select</button>
+                <button class="tab" onclick="switchTab('PLAYING')">Playing</button>
+            </div>
+            
+            <button class="btn-save" onclick="addReference(currentTab)">📸 Capture Current as Reference</button>
+            
+            <div id="ref-gallery" class="ref-gallery" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+[Unit]
+Description=EGM State Detector for %i
+After=network.target
+
+[Service]
+Type=simple
+# User=egm-detector
+# Group=egm-detector
+# Adjust path to your venv or global python
+ExecStart=/usr/bin/python3 -m egm_state_detector.cli serve --config /etc/egm-detector/%i.yaml
+Restart=always
+RestartSec=5
+
+# Create runtime dir for status files if needed
+RuntimeDirectory=egm-detector/%i
+RuntimeDirectoryMode=0755
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

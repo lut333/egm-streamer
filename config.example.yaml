@@ -1,0 +1,75 @@
+common:
+  instance_id: "egm-ipc-01"
+  log_level: "INFO"
+
+streams:
+  game:
+    enabled: true
+    input_device: "/dev/video0"
+    audio_device: "plughw:CARD=Video,DEV=0"
+    resolution: "640x480"
+    fps: 30
+    bitrate: "2000k"
+    rtmp_url: "rtmp://192.168.1.100:1935/game/101"
+    ffmpeg_params:
+      preset: "ultrafast"
+      tune: "zerolatency"
+      gop: 30
+      extra_flags: []
+      
+  cam:
+    enabled: true
+    input_device: "/dev/video2"
+    resolution: "640x480"
+    fps: 30
+    bitrate: "1000k"
+    rtmp_url: "rtmp://192.168.1.100:1935/game/101_cam"
+    ffmpeg_params:
+      preset: "ultrafast"
+      tune: "zerolatency"
+      gop: 30
+
+detector:
+  enabled: true
+  target_stream: "game" # Analyze the game stream
+  
+  detection:
+    algo: dhash
+    hash_size: 8
+    samples: 3
+    sample_interval: 0.15
+
+  states:
+    NORMAL:
+      refs_dir: "/var/lib/egm-detector/refs/normal"
+      rois:
+        - {name: "main", x: 100, y: 200, w: 50, h: 50, required: true}
+      min_match: 1
+      threshold: 12
+
+    SELECT:
+      refs_dir: "/var/lib/egm-detector/refs/select"
+      rois:
+        - {name: "dialog", x: 150, y: 250, w: 80, h: 80, required: true}
+      min_match: 1
+      threshold: 10
+
+    PLAYING:
+      refs_dir: "/var/lib/egm-detector/refs/playing"
+      rois:
+        - {name: "counter", x: 100, y: 150, w: 100, h: 50}
+      min_match: 1
+      threshold: 12
+
+  priority: [SELECT, PLAYING, NORMAL]
+  
+  debounce:
+    confirm_frames: 2
+    drop_frames: 6
+    
+  output:
+    status_file: "/dev/shm/egm-101_detect.json"
+
+api:
+  host: "0.0.0.0"
+  port: 8080

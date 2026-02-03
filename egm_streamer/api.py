@@ -306,12 +306,20 @@ def save_snapshot(req: SnapshotReq):
 @app.get("/api/snapshot/latest")
 def get_latest_snapshot():
     """Get the latest image from the background snapshot service"""
-    if not app_config or not app_config.snapshot.enabled:
+    if not app_config:
+        print("[API] Error: app_config is None")
+        raise HTTPException(404, "Config not loaded")
+        
+    if not app_config.snapshot.enabled:
+        print("[API] Error: Snapshot service disabled in config")
         raise HTTPException(404, "Snapshot service disabled")
         
     path = Path(app_config.snapshot.output_path)
     if not path.exists():
-        raise HTTPException(404, "Snapshot not yet available")
+        print(f"[API] Error: Snapshot file not found at {path}")
+        raise HTTPException(404, f"Snapshot not yet available at {path}")
+        
+    print(f"[API] Serving snapshot from {path}")
         
     from fastapi.responses import FileResponse
     # Disable cache to ensure live update

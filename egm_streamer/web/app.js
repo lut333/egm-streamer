@@ -42,24 +42,44 @@ async function refreshLivePreview() {
 
     // 2. Get Details (Assuming /api/state returns matches)
     try {
-        const res = await fetch('/api/state');
+        const res = await fetch(`${API_BASE}/api/state`);
         const data = await res.json();
         
         // Update table
         if (data.matches) {
             let html = '';
-            for (const [state, info] of Object.entries(data.matches)) {
-                const color = info.is_match ? '#4caf50' : '#888';
-                const weight = info.is_match ? 'bold' : 'normal';
+            // Sort by state name or priority if possible, here simplified
+            const sortedStates = Object.keys(data.matches).sort();
+            
+            for (const state of sortedStates) {
+                const info = data.matches[state];
+                const isMatch = info.is_match;
+                const dist = info.avg_distance;
+                
+                // Color coding for distance: Green if low (good), Red if high
+                let distColor = '#aaa';
+                if (dist < 15) distColor = '#4caf50'; // Very close
+                else if (dist < 25) distColor = '#f1c40f'; // Close-ish
+                else distColor = '#e74c3c'; // Far
+                
                 html += `
                     <tr>
-                        <td style="padding: 5px; color: ${color}; font-weight: ${weight}">${state}</td>
-                        <td style="padding: 5px;">${info.avg_distance.toFixed(2)}</td>
-                        <td style="padding: 5px;">${info.is_match ? 'MATCH' : '-'}</td>
+                        <td style="padding: 5px; font-weight: bold; color: #eee;">${state}</td>
+                        <td style="padding: 5px; color: ${distColor}; font-family: monospace;">${dist > 900 ? 'N/A' : dist.toFixed(2)}</td>
+                        <td style="padding: 5px;">
+                            ${isMatch 
+                                ? '<span style="color:#2ecc71; font-weight:bold;">✔ MATCH</span>' 
+                                : '<span style="color:#555;">-</span>'}
+                        </td>
                     </tr>
                 `;
             }
-            matchTableBody.innerHTML = html;
+            if (!matchTableBody) {
+                // Re-query if lost ref?
+                document.querySelector('#match-table tbody').innerHTML = html;
+            } else {
+                matchTableBody.innerHTML = html;
+            }
         }
     } catch(e) { console.error(e); }
 }

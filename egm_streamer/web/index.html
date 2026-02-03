@@ -141,7 +141,24 @@
                 <div class="detect-state">
                     Current: <span id="current-state" class="state-other">LOADING...</span>
                 </div>
-                <!-- Debug Match Info can go here later -->
+                
+                <!-- Debug Match Info -->
+                <div class="card" style="margin-top: 20px; padding: 10px;">
+                    <h3 style="margin-top:0; border-bottom: 1px solid #444; padding-bottom: 5px;">Match Details</h3>
+                    <table id="match-table" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                        <thead>
+                            <tr style="text-align: left; color: #888;">
+                                <th style="padding: 5px;">State</th>
+                                <th style="padding: 5px;">Dist (Lower is better)</th>
+                                <th style="padding: 5px;">Match?</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Filled by JS -->
+                            <tr><td colspan="3" style="text-align: center; color: #666;">Waiting for data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
             
             <div>

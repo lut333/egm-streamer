@@ -20,91 +20,145 @@
             margin: 0;
             padding: 20px;
         }
-        h1, h2 { margin-bottom: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; }
+        h1, h2 { margin-top: 0; margin-bottom: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
         
-        /* Stream Cards */
-        .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-        .card { background: var(--card); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
-        .status-running { background: var(--primary); color: white; }
-        .status-stopped { background: #555; color: white; }
+        /* Layout */
+        .workspace { display: grid; grid-template-columns: 40% 60%; gap: 20px; margin-bottom: 40px; }
+        @media (max-width: 900px) { .workspace { grid-template-columns: 1fr; } }
         
-        .controls { margin-top: 15px; display: flex; gap: 10px; }
+        .card { background: var(--card); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); height: 100%; box-sizing: border-box; }
+        
+        /* Snapshot Preview */
+        .preview-container { text-align: center; }
+        .preview-img-wrapper { position: relative; width: 100%; border: 1px solid #444; background: #000; min-height: 200px; }
+        .preview-img-wrapper img { width: 100%; height: auto; display: block; }
+        
+        .preview-controls { margin-top: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .capture-section { margin-top: 20px; padding-top: 20px; border-top: 1px solid #444; }
+        
+        /* Buttons */
         button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; transition: opacity 0.2s; font-weight: bold; }
         button:hover { opacity: 0.9; }
         .btn-start { background: var(--success); color: white; }
         .btn-stop { background: var(--danger); color: white; }
         .btn-restart { background: var(--primary); color: white; }
-        .btn-save { background: var(--primary); color: white; margin-top: 10px; width: 100%; }
+        .btn-save { background: var(--primary); color: white; width: 100%; padding: 12px; font-size: 1.1em; }
+        
+        /* Refs Manager */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 10px; }
+        .tab { background: none; color: #888; border: 1px solid transparent; padding: 10px 20px; font-size: 1em; }
+        .tab.active { color: var(--text); border-bottom: 2px solid var(--primary); font-weight: bold; }
+        .tab:hover { color: #fff; }
+        
+        .ref-gallery { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+            gap: 15px; 
+            max-height: 500px; 
+            overflow-y: auto; 
+            padding-right: 5px;
+        }
+        .ref-item { position: relative; aspect-ratio: 4/3; background: #000; border-radius: 4px; border: 1px solid #444; overflow: hidden; }
+        .ref-item img { width: 100%; height: 100%; object-fit: cover; }
+        .ref-actions { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); padding: 5px; text-align: center; opacity: 0; transition: opacity 0.2s; }
+        .ref-item:hover .ref-actions { opacity: 1; }
 
-        /* Detection State */
-        .detect-state { font-size: 2em; text-align: center; margin: 20px 0; padding: 20px; background: var(--card); border-radius: 8px; }
+        /* Bottom Section */
+        .bottom-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .detect-state { font-size: 1.5em; text-align: center; padding: 15px; background: var(--card); border-radius: 8px; font-weight: bold; }
         .state-normal { color: var(--success); }
         .state-select { color: var(--primary); }
         .state-playing { color: #f1c40f; }
         .state-other { color: #7f8c8d; }
-
-        /* Refs Manager */
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 10px; }
-        .tab { background: none; color: #888; border: 1px solid transparent; }
-        .tab.active { color: var(--text); border-bottom: 2px solid var(--primary); }
         
-        .ref-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-        .ref-item { position: relative; aspect-ratio: 4/3; background: #000; overflow: hidden; border-radius: 4px; border: 1px solid #444; }
-        .ref-item img { width: 100%; height: 100%; object-fit: cover; }
-        .ref-actions { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); padding: 5px; text-align: center; opacity: 0; transition: opacity 0.2s; }
-        .ref-item:hover .ref-actions { opacity: 1; }
+        .status-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+        .status-running { background: var(--success); color: white; }
+        .status-stopped { background: #555; color: white; }
+        .stream-card h3 { margin: 0 0 10px 0; font-size: 1.1em; }
+        
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>EGM Stream Manager</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1 style="margin:0;">EGM Stream Manager</h1>
+            <div id="connection-status" style="color: #666; font-size: 0.9em;">Connected</div>
+        </div>
         
-        <!-- Snapshot Service Preview -->
-        <div class="card" style="margin-bottom: 20px;">
-            <h2>Snapshot Service (Background)</h2>
-            <div style="display: flex; gap: 20px; align-items: flex-start;">
-                <div>
-                    <a id="snapshot-link" href="#" target="_blank" style="display: block;">
-                        <img id="snapshot-img" src="" style="width: 100%; max-width: 480px; border: 1px solid #333; display: none;">
+        <!-- Main Workspace -->
+        <div class="workspace">
+            
+            <!-- Left: Current View & Capture -->
+            <div class="card">
+                <h2>Current View (Snapshot)</h2>
+                <div class="preview-container">
+                    <a id="snapshot-link" href="#" target="_blank" class="preview-img-wrapper" style="display: block;">
+                        <img id="snapshot-img" src="" alt="Snapshot Preview">
                     </a>
-                    <div style="margin-top: 10px;">
-                        <label><input type="checkbox" id="auto-refresh-snapshot" checked> Auto Refresh (2s)</label>
+                    
+                    <div class="preview-controls">
+                        <label title="Auto refresh every 2s"><input type="checkbox" id="auto-refresh-snapshot" checked> Auto Refresh</label>
                         <button onclick="refreshSnapshot()">Refresh Now</button>
                     </div>
-                </div>
-                <div style="flex: 1; padding: 10px; color: #aaa;">
-                    This preview shows the latest image captured by the independent Snapshot Service.<br>
-                    Path: <code>/dev/shm/latest.jpg</code> (or configured path)
+                    
+                    <div class="capture-section">
+                        <button class="btn-save" onclick="addReference(currentTab)">
+                            📸 Capture to <span id="capture-target-name">NORMAL</span>
+                        </button>
+                        <p style="color: #666; font-size: 0.9em; margin-top: 10px;">
+                            Captures the current snapshot frame immediately.<br>
+                            Source: <code>/dev/shm/latest.jpg</code>
+                        </p>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Live Detection State -->
-        <div class="detect-state">
-            Current State: <span id="current-state" class="state-other">LOADING...</span>
-        </div>
-
-        <!-- Streams -->
-        <h2>Streams</h2>
-        <div id="stream-grid" class="grid"></div>
-
-        <!-- Reference Manager -->
-        <h2 style="margin-top: 40px;">Reference Manager</h2>
-        <div class="card">
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab('NORMAL')">Normal</button>
-                <button class="tab" onclick="switchTab('SELECT')">Select</button>
-                <button class="tab" onclick="switchTab('PLAYING')">Playing</button>
+            <!-- Right: Reference Gallery -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2>Reference Gallery</h2>
+                    <span style="font-size: 0.8em; color: #666;">Images stored in /var/lib/egm-detector</span>
+                </div>
+                
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('NORMAL')">Normal</button>
+                    <button class="tab" onclick="switchTab('SELECT')">Select</button>
+                    <button class="tab" onclick="switchTab('PLAYING')">Playing</button>
+                </div>
+                
+                <div id="ref-gallery" class="ref-gallery">
+                    <!-- Gallery Items -->
+                </div>
             </div>
             
-            <button class="btn-save" onclick="addReference(currentTab)">📸 Capture Current as Reference</button>
+        </div>
+
+        <!-- Bottom: Status & Streams -->
+        <div class="bottom-section">
+            <div>
+                <h2>Detection Status</h2>
+                <div class="detect-state">
+                    Current: <span id="current-state" class="state-other">LOADING...</span>
+                </div>
+                <!-- Debug Match Info can go here later -->
+            </div>
             
-            <div id="ref-gallery" class="ref-gallery" style="margin-top: 20px;"></div>
+            <div>
+                <h2>Stream Status</h2>
+                <div id="stream-grid" style="display: grid; gap: 10px;"></div>
+            </div>
         </div>
     </div>
 
     <script src="app.js"></script>
+    <script>
+        // Inline update for capture button label
+        const originalSwitchTab = window.switchTab;
+        window.switchTab = function(state) {
+            originalSwitchTab(state);
+            document.getElementById('capture-target-name').innerText = state;
+        }
+    </script>
 </body>
 </html>

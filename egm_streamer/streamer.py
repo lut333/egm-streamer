@@ -64,8 +64,8 @@ class Streamer:
             "-hide_banner", "-nostats", "-loglevel", "warning",
             "-probesize", "32", "-analyzeduration", "0", # Ultra low latency input
             "-progress", "pipe:1",
-            "-flags", "low_delay", # Critical
-            "-fflags", "+genpts", "-use_wallclock_as_timestamps", "1", # Critical
+            "-flags", "low_delay", 
+            "-fflags", "+genpts+nobuffer", "-use_wallclock_as_timestamps", "1", # Added +nobuffer
             "-f", "v4l2", "-thread_queue_size", "1024", 
             "-video_size", self.config.resolution, 
             "-i", self.config.input_device
@@ -75,7 +75,8 @@ class Streamer:
             cmd += [
                 "-f", "alsa", "-thread_queue_size", "4096", 
                 "-i", self.config.audio_device,
-                "-c:a", "aac", "-b:a", "96k"
+                "-c:a", "aac", "-b:a", "96k",
+                "-af", "aresample=async=1" # Key fix for AV drift
             ]
         else:
              pass
@@ -87,7 +88,7 @@ class Streamer:
             "-g", str(p.gop), 
             "-x264-params", f"scenecut=0:keyint={p.gop}:min-keyint={p.gop}", 
             "-tune", p.tune, 
-            "-preset", p.preset,
+            "-preset", p.preset, # preset should be strictly ultrafast/superfast for low latency
             "-f", "flv", self.config.rtmp_url
         ]
         

@@ -56,7 +56,7 @@ class StreamerConfig(BaseModel):
     resolution: str = "640x480"
     fps: int = 30
     bitrate: str = "2000k"
-    rtmp_url: str
+    rtmp_url: Optional[str] = None
     ffmpeg_params: FFmpegParams = Field(default_factory=FFmpegParams)
     
     # Internal usage or override

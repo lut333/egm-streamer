@@ -51,6 +51,11 @@ class Streamer:
                 time.sleep(3)
 
     def _run_ffmpeg(self):
+        if not self.config.rtmp_url:
+            print(f"[Streamer:{self.name}] Error: RTMP URL not configured")
+            time.sleep(5) # Prevent tight loop
+            return
+
         # Strict low-latency parameters from user request
         p = self.config.ffmpeg_params
         
@@ -83,15 +88,6 @@ class Streamer:
             "-x264-params", f"scenecut=0:keyint={p.gop}:min-keyint={p.gop}", # Critical
             "-tune", p.tune, 
             "-preset", p.preset,
-            # "-b:v", self.config.bitrate, # CRF 18 overrides bitrate usually, but user script didn't use bitrate? 
-            # Oh wait, user script uses CRF 18. Some scripts use CBR. 
-            # Let's check user provided script content again in memory...
-            # The push_rtmp.sh used: -c:v libx264 -profile:v main -crf "$CRF" ...
-            # NOT specifying -b:v. So we should probably respect that if bitrate isn't used.
-            # However config has bitrate field. Let's interpret: if bitrate set, use it? 
-            # Actually CRF 18 is better for quality if bandwidth allows. 
-            # Let's support CRF logic. If config.bitrate is set maybe ignore if CRF is used?
-            # User wants "CONSISTENT WITH SCRIPT", script uses CRF 18.
             "-f", "flv", self.config.rtmp_url
         ]
         

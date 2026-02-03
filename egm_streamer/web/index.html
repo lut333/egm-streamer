@@ -61,6 +61,26 @@
     <div class="container">
         <h1>EGM Stream Manager</h1>
         
+        <!-- Snapshot Service Preview -->
+        <div class="card" style="margin-bottom: 20px;">
+            <h2>Snapshot Service (Background)</h2>
+            <div style="display: flex; gap: 20px; align-items: flex-start;">
+                <div>
+                    <a id="snapshot-link" href="#" target="_blank" style="display: block;">
+                        <img id="snapshot-img" src="" style="width: 100%; max-width: 480px; border: 1px solid #333; display: none;">
+                    </a>
+                    <div style="margin-top: 10px;">
+                        <label><input type="checkbox" id="auto-refresh-snapshot" checked> Auto Refresh (2s)</label>
+                        <button onclick="refreshSnapshot()">Refresh Now</button>
+                    </div>
+                </div>
+                <div style="flex: 1; padding: 10px; color: #aaa;">
+                    This preview shows the latest image captured by the independent Snapshot Service.<br>
+                    Path: <code>/dev/shm/latest.jpg</code> (or configured path)
+                </div>
+            </div>
+        </div>
+
         <!-- Live Detection State -->
         <div class="detect-state">
             Current State: <span id="current-state" class="state-other">LOADING...</span>

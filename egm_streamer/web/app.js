@@ -6,115 +6,65 @@ setInterval(updateStatus, 2000);
 updateStatus();
 loadRefs(currentTab);
 
-// Live Preview
+// Live Preview (Detector)
 const liveImg = document.getElementById('live-img');
 const autoRefreshLive = document.getElementById('auto-refresh-live');
 const matchTableBody = document.querySelector('#match-table tbody');
 
+// Snapshot Preview (Service)
+const snapshotImg = document.getElementById('snapshot-img');
+const snapshotLink = document.getElementById('snapshot-link');
+const autoRefreshSnapshot = document.getElementById('auto-refresh-snapshot');
+
 setInterval(() => {
-    if(autoRefreshLive.checked) refreshLivePreview();
+    // Only fetch if elements exist (in case of partial page load)
+    if(autoRefreshLive && autoRefreshLive.checked) refreshLivePreview();
 }, 1000);
 
+setInterval(() => {
+    if(autoRefreshSnapshot && autoRefreshSnapshot.checked) refreshSnapshot();
+}, 2000);
+
+function refreshSnapshot() {
+    const ts = Date.now();
+    const url = '/api/snapshot/latest?t=' + ts;
+    snapshotImg.src = url;
+    snapshotImg.style.display = 'block';
+    // Update link to force reload in new tab too so browser doesn't cache old version
+    snapshotLink.href = url;
+}
+
 async function refreshLivePreview() {
+    // ... (unchanged)
     // 1. Get Image
     const url = '/api/live/frame?t=' + Date.now();
     liveImg.src = url;
     liveImg.style.display = 'block';
-
-    // 2. Get Details (Assuming /api/state returns matches)
-    try {
-        const res = await fetch('/api/state');
-        const data = await res.json();
-        
-        // Update table
-        if (data.matches) {
-            let html = '';
-            for (const [state, info] of Object.entries(data.matches)) {
-                const color = info.is_match ? '#4caf50' : '#888';
-                const weight = info.is_match ? 'bold' : 'normal';
-                html += `
-                    <tr>
-                        <td style="padding: 5px; color: ${color}; font-weight: ${weight}">${state}</td>
-                        <td style="padding: 5px;">${info.avg_distance.toFixed(2)}</td>
-                        <td style="padding: 5px;">${info.is_match ? 'MATCH' : '-'}</td>
-                    </tr>
-                `;
-            }
-            matchTableBody.innerHTML = html;
-        }
-    } catch(e) { console.error(e); }
-}
-
-async function updateStatus() {
-    // 1. Detection State
-    try {
-        const res = await fetch(`${API_BASE}/api/state`);
-        const data = await res.json();
-        const el = document.getElementById('current-state');
-        if (data.error) {
-            el.textContent = "OFFLINE";
-            el.className = "state-other";
-        } else {
-            el.textContent = data.state || "UNKNOWN";
-            el.className = `state-${(data.state || '').toLowerCase()}`;
-        }
-    } catch (e) { console.error(e); }
-
-    // 2. Streams
-    try {
-        const res = await fetch(`${API_BASE}/api/streams`);
-        const streams = await res.json();
-        renderStreams(streams);
-    } catch (e) { console.error(e); }
-}
-
-function renderStreams(streams) {
-    const grid = document.getElementById('stream-grid');
-    grid.innerHTML = '';
     
-    for (const [name, status] of Object.entries(streams)) {
-        const div = document.createElement('div');
-        div.className = 'card';
-        div.innerHTML = `
-            <h3>${name.toUpperCase()}</h3>
-            <div>Status: <span class="status-badge ${status.running ? 'status-running':'status-stopped'}">
-                ${status.running ? 'RUNNING' : 'STOPPED'}
-            </span></div>
-            <div style="margin: 10px 0; font-family: monospace; color: #aaa;">
-                FPS: ${status.fps.toFixed(1)}<br>
-                Bitrate: ${status.bitrate}<br>
-                Speed: ${status.speed}<br>
-                Frames: ${status.frame}<br>
-                PID: ${status.pid || '-'}
-            </div>
-            <div class="controls">
-                <button class="btn-start" onclick="controlStream('${name}', 'start')">Start</button>
-                <button class="btn-stop" onclick="controlStream('${name}', 'stop')">Stop</button>
-                <button class="btn-restart" onclick="controlStream('${name}', 'restart')">Restart</button>
-            </div>
-        `;
-        grid.appendChild(div);
+    // ... (rest of function)
+    const res = await fetch('/api/state');
+    const data = await res.json();
+    
+    // Update table
+    if (data.matches) {
+        let html = '';
+        for (const [state, info] of Object.entries(data.matches)) {
+            const color = info.is_match ? '#4caf50' : '#888';
+            const weight = info.is_match ? 'bold' : 'normal';
+            html += `
+                <tr>
+                    <td style="padding: 5px; color: ${color}; font-weight: ${weight}">${state}</td>
+                    <td style="padding: 5px;">${info.avg_distance.toFixed(2)}</td>
+                    <td style="padding: 5px;">${info.is_match ? 'MATCH' : '-'}</td>
+                </tr>
+            `;
+        }
+        matchTableBody.innerHTML = html;
     }
 }
-
-async function controlStream(name, action) {
-    await fetch(`${API_BASE}/api/streams/${name}/control`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({action})
-    });
-    // Instant update
-    setTimeout(updateStatus, 500); 
-}
-
-// Refs Manager
-function switchTab(state) {
-    currentTab = state;
-    document.querySelectorAll('.tab').forEach(b => 
-        b.classList.toggle('active', b.innerText.toUpperCase() === state)
-    );
-    loadRefs(state);
-}
+//...
+// Inside loadRefs function (need to target partial replacement or full function)
+// Since this is a bit complex to target just the innerHTML loop, I'll replace the loop part.
 
 async function loadRefs(state) {
     const gallery = document.getElementById('ref-gallery');
@@ -132,30 +82,15 @@ async function loadRefs(state) {
         }
 
         files.forEach(file => {
-            // How to display image? Does API serve refs?
-            // Actually API endpoints are for listing/adding/deleting.
-            // We need a way to VIEW them. 
-            // We didn't add a static mount for refs. 
-            // Let's implement dynamic image fetching or assume they are public? 
-            // They are likely in /tmp or /var/lib.
-            // We need an endpoint to serve the image content. 
-            // Wait, we can modify api.py to serve content, or maybe add a GET endpoint for image content? 
-            // For now let's assume we can fetch via a generic endpoint or base64. 
-            // Actually we don't have an endpoint to serve the image binary! 
-            // I should add one in the API refactoring. 
-            // Let's assume there is /api/refs/{state}/{filename}/view
-            
-            // Wait, implementation plan said "GET /api/refs/{state}" lists files. 
-            // It didn't explicitly specify serving them. 
-            // I'll add a view endpoint? Or maybe just rely on users copying them? 
-            // No, UI needs to show them.
-            
+            const imgUrl = `${API_BASE}/api/refs/${state}/${file}/image`;
             const div = document.createElement('div');
             div.className = 'ref-item';
             div.innerHTML = `
-                <img src="${API_BASE}/api/refs/${state}/${file}/image" alt="${file}">
+                <a href="${imgUrl}" target="_blank" style="display:block; width:100%; height:100%;">
+                    <img src="${imgUrl}" alt="${file}">
+                </a>
                 <div class="ref-actions">
-                    <button class="btn-stop" onclick="deleteRef('${state}', '${file}')">Delete</button>
+                    <button class="btn-stop" onclick="event.preventDefault(); deleteRef('${state}', '${file}')">Delete</button>
                 </div>
             `;
             gallery.appendChild(div);

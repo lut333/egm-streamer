@@ -303,6 +303,21 @@ def save_snapshot(req: SnapshotReq):
     return {"saved": len(saved), "files": saved}
 
 
+@app.get("/api/snapshot/latest")
+def get_latest_snapshot():
+    """Get the latest image from the background snapshot service"""
+    if not app_config or not app_config.snapshot.enabled:
+        raise HTTPException(404, "Snapshot service disabled")
+        
+    path = Path(app_config.snapshot.output_path)
+    if not path.exists():
+        raise HTTPException(404, "Snapshot not yet available")
+        
+    from fastapi.responses import FileResponse
+    # Disable cache to ensure live update
+    return FileResponse(path, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+
+
 # --- Static Files ---
 # Serve web UI from 'web' folder inside package
 try:

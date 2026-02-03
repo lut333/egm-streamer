@@ -11,9 +11,9 @@ streams:
     input_device: "/dev/video0"
     audio_device: "plughw:CARD=Video,DEV=0"
     resolution: "640x480"
-    fps: 30
-    bitrate: "2000k"
-    rtmp_url: "rtmp://192.168.1.100:1935/game/101"
+    #fps: 30
+    #bitrate: "2000k"
+    rtmp_url: "rtmp://192.168.43.10/game/101"
     ffmpeg_params:
       preset: "ultrafast"
       tune: "zerolatency"
@@ -25,8 +25,8 @@ streams:
     input_device: "/dev/video2"
     audio_device: null # No audio for camera
     resolution: "640x480"
-    fps: 30
-    bitrate: "1000k"
+    #fps: 30
+    #bitrate: "1000k"
     rtmp_url: "rtmp://192.168.1.100:1935/game/101_cam"
     ffmpeg_params:
       preset: "ultrafast"

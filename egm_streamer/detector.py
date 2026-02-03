@@ -99,10 +99,13 @@ class EgmStateDetector:
             timestamp=time.time()
         )
         
-        # 4. Notify on state change
+        # 4. Notify on state change (isolated - errors won't affect detection)
         if final_state != self._last_state:
             print(f"[Detector] State changed: {self._last_state} -> {final_state}")
-            self.notifier.send_state_change(self._last_state, final_state)
+            try:
+                self.notifier.send_state_change(self._last_state, final_state)
+            except Exception as e:
+                print(f"[Detector] Notifier error (ignored): {e}")
             self._last_state = final_state
         
         # 5. Output to file

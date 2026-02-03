@@ -40,52 +40,11 @@ async function refreshLivePreview() {
     liveImg.src = url;
     liveImg.style.display = 'block';
 
-    // 2. Get Details (Assuming /api/state returns matches)
-    try {
-        const res = await fetch(`${API_BASE}/api/state`);
-        const data = await res.json();
-        
-        // Update table
-        if (data.matches) {
-            let html = '';
-            // Sort by state name or priority if possible, here simplified
-            const sortedStates = Object.keys(data.matches).sort();
-            
-            for (const state of sortedStates) {
-                const info = data.matches[state];
-                const isMatch = info.is_match;
-                const dist = info.avg_distance;
-                
-                // Color coding for distance: Green if low (good), Red if high
-                let distColor = '#aaa';
-                if (dist < 15) distColor = '#4caf50'; // Very close
-                else if (dist < 25) distColor = '#f1c40f'; // Close-ish
-                else distColor = '#e74c3c'; // Far
-                
-                html += `
-                    <tr>
-                        <td style="padding: 5px; font-weight: bold; color: #eee;">${state}</td>
-                        <td style="padding: 5px; color: ${distColor}; font-family: monospace;">${dist > 900 ? 'N/A' : dist.toFixed(2)}</td>
-                        <td style="padding: 5px;">
-                            ${isMatch 
-                                ? '<span style="color:#2ecc71; font-weight:bold;">✔ MATCH</span>' 
-                                : '<span style="color:#555;">-</span>'}
-                        </td>
-                    </tr>
-                `;
-            }
-            if (!matchTableBody) {
-                // Re-query if lost ref?
-                document.querySelector('#match-table tbody').innerHTML = html;
-            } else {
-                matchTableBody.innerHTML = html;
-            }
-        }
-    } catch(e) { console.error(e); }
+// Logic moved to updateStatus
 }
 
 async function updateStatus() {
-    // 1. Detection State
+    // 1. Detection State & Matches
     try {
         const res = await fetch(`${API_BASE}/api/state`);
         const data = await res.json();
@@ -96,6 +55,36 @@ async function updateStatus() {
         } else {
             el.textContent = data.state || "UNKNOWN";
             el.className = `state-${(data.state || '').toLowerCase()}`;
+            
+            // Render Match Table
+            if (data.matches) {
+                let html = '';
+                const sortedStates = Object.keys(data.matches).sort();
+                
+                for (const state of sortedStates) {
+                    const info = data.matches[state];
+                    const isMatch = info.is_match;
+                    const dist = info.avg_distance;
+                    
+                    let distColor = '#aaa';
+                    if (dist < 15) distColor = '#4caf50';
+                    else if (dist < 25) distColor = '#f1c40f';
+                    else distColor = '#e74c3c';
+                    
+                    html += `
+                        <tr>
+                            <td style="padding: 5px; font-weight: bold; color: #eee;">${state}</td>
+                            <td style="padding: 5px; color: ${distColor}; font-family: monospace;">${dist > 900 ? 'N/A' : dist.toFixed(2)}</td>
+                            <td style="padding: 5px;">
+                                ${isMatch 
+                                    ? '<span style="color:#2ecc71; font-weight:bold;">✔ MATCH</span>' 
+                                    : '<span style="color:#555;">-</span>'}
+                            </td>
+                        </tr>
+                    `;
+                }
+                if (matchTableBody) matchTableBody.innerHTML = html;
+            }
         }
     } catch (e) { console.error(e); }
 

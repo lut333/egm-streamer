@@ -15,7 +15,7 @@ class MatchPolicy(BaseModel):
     threshold: int = 12
 
 class StateConfig(BaseModel):
-    name: str  # NORMAL, SELECT, PLAYING
+    name: Optional[str] = None  # NORMAL, SELECT, PLAYING (Optional, usually inferred from dict key)
     refs_dir: str
     rois: List[ROI]
     match_policy: MatchPolicy = Field(default_factory=MatchPolicy)

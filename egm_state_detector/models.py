@@ -102,5 +102,7 @@ class StreamStatus(BaseModel):
     pid: Optional[int]
     fps: float
     bitrate: str
+    speed: str = "0x"
+    frame: int = 0
     uptime: float
     last_update: float

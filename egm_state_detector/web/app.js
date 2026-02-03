@@ -44,6 +44,8 @@ function renderStreams(streams) {
             <div style="margin: 10px 0; font-family: monospace; color: #aaa;">
                 FPS: ${status.fps.toFixed(1)}<br>
                 Bitrate: ${status.bitrate}<br>
+                Speed: ${status.speed}<br>
+                Frames: ${status.frame}<br>
                 PID: ${status.pid || '-'}
             </div>
             <div class="controls">

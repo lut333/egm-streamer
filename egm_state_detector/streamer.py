@@ -135,6 +135,14 @@ class Streamer:
         elif k == "bitrate":
             self.status.bitrate = v
             updated = True
+        elif k == "speed":
+            self.status.speed = v
+            updated = True
+        elif k == "frame":
+            try:
+                self.status.frame = int(v)
+                updated = True
+            except: pass
         elif k == "progress" and v == "continue":
             self.status.uptime = time.time() - self.start_time
             self.status.last_update = time.time()

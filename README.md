@@ -145,25 +145,50 @@ egm-detector serve --config my_config.yaml
 
 若要設為開機自動啟動，請使用 Systemd Template。
 
-1. **安裝 Service File**
-   ```bash
-   sudo cp egm-detector@.service /etc/systemd/system/
-   sudo systemctl daemon-reload
-   ```
+### 1. 安裝 Service File
 
-2. **建立設定檔**
-   設定檔路徑固定為 `/etc/egm-detector/{INSTANCE_NAME}.yaml`。
-   ```bash
-   sudo mkdir -p /etc/egm-detector
-   sudo cp my_config.yaml /etc/egm-detector/egm-101.yaml
-   ```
+```bash
+cd /opt/egm-streamer
+sudo cp egm-detector@.service /etc/systemd/system/
+sudo systemctl daemon-reload
+```
 
-3. **啟動**
-   ```bash
-   sudo systemctl enable --now egm-detector@egm-101
-   ```
+這份 service 檔案預設使用 `/opt/egm-streamer/venv/bin/egm-detector` 作為執行檔路徑。
 
-4. **查看 Log**
-   ```bash
-   journalctl -u egm-detector@egm-101 -f
-   ```
+### 2. 建立設定檔
+
+設定檔需放在 `/etc/egm-detector/`，檔名需對應您的 **實例名稱** (例如 `egm-100`)。
+
+```bash
+sudo mkdir -p /etc/egm-detector
+# 假設您目前的設定檔為 my_config.yaml
+sudo cp my_config.yaml /etc/egm-detector/egm-100.yaml
+```
+
+### 3. 啟動服務
+
+啟動名稱為 `egm-100` 的實例：
+
+```bash
+# 設為開機自動啟動並立即執行
+sudo systemctl enable --now egm-detector@egm-100
+```
+
+### 4. 日常維運指令
+
+- **查看狀態**：
+  ```bash
+  sudo systemctl status egm-detector@egm-100
+  ```
+- **查看日誌 (即時)**：
+  ```bash
+  journalctl -u egm-detector@egm-100 -f
+  ```
+- **重啟服務**：
+  ```bash
+  sudo systemctl restart egm-detector@egm-100
+  ```
+- **停止服務**：
+  ```bash
+  sudo systemctl stop egm-detector@egm-100
+  ```

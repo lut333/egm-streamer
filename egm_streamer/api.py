@@ -315,7 +315,7 @@ def get_latest_snapshot():
         
     from fastapi.responses import FileResponse
     # Disable cache to ensure live update
-    return FileResponse(path, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+    return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 
 # --- Static Files ---

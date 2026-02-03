@@ -199,22 +199,23 @@ def add_ref(state: str):
     tmp_path = str(snap_path)
     print(f"[API] Using background snapshot: {tmp_path}")
 
-        ref_dir = Path(det_cfg.states[state].refs_dir)
-        ref_dir.mkdir(parents=True, exist_ok=True)
-        
-        ts = int(time.time())
-        filename = f"ref_{ts}.jpg"
-        dst = ref_dir / filename
-        
+    ref_dir = Path(det_cfg.states[state].refs_dir)
+    ref_dir.mkdir(parents=True, exist_ok=True)
+    
+    ts = int(time.time())
+    filename = f"ref_{ts}.jpg"
+    dst = ref_dir / filename
+    
+    try:
         shutil.copy(tmp_path, dst)
-        
-        # Reload detector refs if running
-        if detector_instance:
-            detector_instance.ref_mgr.load_all()
-        
-        return {"status": "saved", "filename": filename}
     except Exception as e:
-        raise HTTPException(500, f"Capture failed: {e}")
+        raise HTTPException(500, f"Failed to save reference: {e}")
+    
+    # Reload detector refs if running
+    if detector_instance:
+        detector_instance.ref_mgr.load_all()
+    
+    return {"status": "saved", "filename": filename}
 
 @app.get("/api/refs/{state}/{filename}/image")
 def get_ref_image(state: str, filename: str):

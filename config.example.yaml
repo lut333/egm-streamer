@@ -98,6 +98,13 @@ detector:
     
   output:
     status_file: "/dev/shm/egm-101_detect.json"
+    
+  # Telegram Notification (Optional)
+  telegram:
+    enabled: false
+    bot_token: "123456789:AAHxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    chat_id: "-1001234567890"
+    client_id: null # Optional, defaults to common.instance_id
 
 api:
   host: "0.0.0.0"

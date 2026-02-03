@@ -8,6 +8,7 @@ from .capture import StreamCapturer
 from .refs import ReferenceManager
 from .matcher import Matcher
 from .state_machine import StateMachine
+from .notifier import TelegramNotifier
 
 class EgmStateDetector:
     def __init__(self, config: AppConfig):
@@ -26,6 +27,10 @@ class EgmStateDetector:
         self.ref_mgr = ReferenceManager(det_cfg.states, det_cfg.detection)
         self.matcher = Matcher(self.ref_mgr, det_cfg.detection.algo, det_cfg.detection.hash_size)
         self.sm = StateMachine(det_cfg.debounce)
+        
+        # Notifier
+        self.notifier = TelegramNotifier(det_cfg.telegram, config.common.instance_id)
+        self._last_state = "UNKNOWN"
         
         # Initial load
         self.ref_mgr.load_all()
@@ -94,7 +99,13 @@ class EgmStateDetector:
             timestamp=time.time()
         )
         
-        # 4. Output to file
+        # 4. Notify on state change
+        if final_state != self._last_state:
+            print(f"[Detector] State changed: {self._last_state} -> {final_state}")
+            self.notifier.send_state_change(self._last_state, final_state)
+            self._last_state = final_state
+        
+        # 5. Output to file
         self._write_status(result)
         
         return result

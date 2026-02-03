@@ -63,6 +63,12 @@ class StreamerConfig(BaseModel):
     # Internal usage or override
     status_file: Optional[str] = None 
 
+class TelegramConfig(BaseModel):
+    enabled: bool = False
+    bot_token: str = ""
+    chat_id: str = ""
+    client_id: Optional[str] = None # Optional override, otherwise use common.instance_id
+
 class DetectorConfigWrapper(BaseModel):
     enabled: bool = True
     target_stream: str = "game"  # Name of the stream to capture from
@@ -73,6 +79,9 @@ class DetectorConfigWrapper(BaseModel):
     priority: List[str] = ["SELECT", "PLAYING", "NORMAL"]
     debounce: DebounceConfig = Field(default_factory=DebounceConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
+    
+    # Notifications
+    telegram: TelegramConfig = Field(default_factory=TelegramConfig)
 
 class CommonConfig(BaseModel):
     instance_id: str = "egm-default"

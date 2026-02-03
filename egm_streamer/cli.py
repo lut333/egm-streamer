@@ -70,8 +70,10 @@ def cmd_snapshot(args):
     print(f"Snapshotting from {args.url} ...")
     
     import time
-    for i in range(args.count):
-        if args.count > 1 and args.output_dir:
+    import time
+    i = 0
+    while args.count <= 0 or i < args.count:
+        if args.output_dir:
             ts = int(time.time() * 1000)
             fname = f"snap_{ts}_{i:02d}.jpg"
             path = Path(args.output_dir) / fname
@@ -81,8 +83,11 @@ def cmd_snapshot(args):
         saved_paths.append(real_path)
         print(f"Saved: {real_path}")
         
-        if i < args.count - 1 and args.interval > 0:
+        # Don't sleep if running continuously and interval is 0
+        if (args.count <= 0 or i < args.count - 1) and args.interval > 0:
             time.sleep(args.interval)
+            
+        i += 1
 
 def cmd_rebuild(args):
     """Force rebuild references"""

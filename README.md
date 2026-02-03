@@ -98,6 +98,14 @@ streams:
     # input_device: "/dev/video2" 
     # rtmp_url: "rtmp://192.168.1.100:1935/game/101_cam"
 
+    # ...
+    
+snapshot:
+  enabled: true
+  target_stream: "game"
+  output_path: "/dev/shm/latest.jpg" # 持續刷新此檔案
+  interval: 1.0
+
 detector:
   enabled: true
   target_stream: "game"  # 綁定 game stream 進行截圖分析

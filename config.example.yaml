@@ -29,8 +29,15 @@ streams:
       tune: "zerolatency"
       gop: 30
 
+snapshot:
+  enabled: false
+  target_stream: "game"
+  output_path: "/dev/shm/latest.jpg"
+  interval: 1.0
+  quality: 2 # FFmpeg -q:v (1-31), 1=Best, 31=Worst
+
 detector:
-  enabled: true
+  enabled: false
   target_stream: "game" # Analyze the game stream
   
   detection:

@@ -6,6 +6,45 @@ setInterval(updateStatus, 2000);
 updateStatus();
 loadRefs(currentTab);
 
+// Live Preview
+const liveImg = document.getElementById('live-img');
+const autoRefreshLive = document.getElementById('auto-refresh-live');
+const matchTableBody = document.querySelector('#match-table tbody');
+
+setInterval(() => {
+    if(autoRefreshLive.checked) refreshLivePreview();
+}, 1000);
+
+async function refreshLivePreview() {
+    // 1. Get Image
+    const url = '/api/live/frame?t=' + Date.now();
+    liveImg.src = url;
+    liveImg.style.display = 'block';
+
+    // 2. Get Details (Assuming /api/state returns matches)
+    try {
+        const res = await fetch('/api/state');
+        const data = await res.json();
+        
+        // Update table
+        if (data.matches) {
+            let html = '';
+            for (const [state, info] of Object.entries(data.matches)) {
+                const color = info.is_match ? '#4caf50' : '#888';
+                const weight = info.is_match ? 'bold' : 'normal';
+                html += `
+                    <tr>
+                        <td style="padding: 5px; color: ${color}; font-weight: ${weight}">${state}</td>
+                        <td style="padding: 5px;">${info.avg_distance.toFixed(2)}</td>
+                        <td style="padding: 5px;">${info.is_match ? 'MATCH' : '-'}</td>
+                    </tr>
+                `;
+            }
+            matchTableBody.innerHTML = html;
+        }
+    } catch(e) { console.error(e); }
+}
+
 async function updateStatus() {
     // 1. Detection State
     try {

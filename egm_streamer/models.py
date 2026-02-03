@@ -25,6 +25,7 @@ class StreamConfig(BaseModel):
     capture_interval: float = 1.0
     scale: str = "640:-1"
     rw_timeout_us: int = 5000000
+    quality: int = 2 # FFmpeg -q:v (1-31, 1 is best)
 
 class DetectionConfig(BaseModel):
     algo: Literal["phash", "dhash", "ahash"] = "dhash"
@@ -77,11 +78,20 @@ class CommonConfig(BaseModel):
     instance_id: str = "egm-default"
     log_level: str = "INFO"
 
+class SnapshotServiceConfig(BaseModel):
+    enabled: bool = False
+    target_stream: str = "game"
+    url: Optional[str] = None # Optional override
+    output_path: str = "/dev/shm/latest.jpg"
+    interval: float = 1.0
+    quality: int = 2 # FFmpeg -q:v
+
 class AppConfig(BaseModel):
     common: CommonConfig = Field(default_factory=CommonConfig)
     streams: Dict[str, StreamerConfig] = Field(default_factory=dict)
     # Default detector to disabled if not provided
     detector: DetectorConfigWrapper = Field(default_factory=lambda: DetectorConfigWrapper(enabled=False, states={}))
+    snapshot: SnapshotServiceConfig = Field(default_factory=SnapshotServiceConfig)
     api: ApiConfig = Field(default_factory=ApiConfig)
 
 # Runtime Models

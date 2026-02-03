@@ -28,7 +28,7 @@ class StreamCapturer:
             "-an", "-sn", "-dn",
             "-frames:v", "1",
             "-vf", f"scale={self.config.scale}",
-            "-q:v", "2",
+            "-q:v", str(self.config.quality), # Use configured quality
             "-f", "image2", "-vcodec", "mjpeg",
             str(self.tmp_path)
         ]

@@ -27,11 +27,19 @@ async def lifespan(app: FastAPI):
     if detector_instance and detector_instance.config.detector.enabled:
         detect_thread = threading.Thread(target=detection_loop, daemon=True)
         detect_thread.start()
+    
+    # Snapshot loop startup
+    if detector_instance and detector_instance.config.snapshot.enabled:
+        snap_thread = threading.Thread(target=snapshot_loop, daemon=True)
+        snap_thread.start()
+
     yield
     # Shutdown
     stop_event.set()
     if detector_instance and 'detect_thread' in locals():
         detect_thread.join(timeout=2.0)
+    if detector_instance and 'snap_thread' in locals():
+        snap_thread.join(timeout=2.0)
 
 app = FastAPI(lifespan=lifespan)
 
@@ -61,6 +69,42 @@ def detection_loop():
         sleep_time = max(0.1, interval - dt)
         
         stop_event.wait(sleep_time)
+
+# -------------------------
+# Snapshot Loop
+# -------------------------
+from .capture import StreamCapturer, StreamConfig as CapturerStreamConfig # Import if needed
+
+def snapshot_loop():
+    global detector_instance
+    if not detector_instance: return
+
+    snap_cfg = detector_instance.config.snapshot
+    print(f"Background snapshot loop started. Target: {snap_cfg.target_stream}, Interval: {snap_cfg.interval}")
+    
+    # Resolve capture URL
+    url = snap_cfg.url
+    if not url:
+        if snap_cfg.target_stream in detector_instance.config.streams:
+            stream_conf = detector_instance.config.streams[snap_cfg.target_stream]
+            url = stream_conf.rtmp_url
+    
+    if not url:
+        print("[Snapshot] Error: No URL found for snapshot service")
+        return
+
+    # Use default scale/timeout from a StreamConfig
+    sc = CapturerStreamConfig(url=url, scale="640:-1", quality=snap_cfg.quality) 
+    capturer = StreamCapturer(sc, snap_cfg.output_path)
+    
+    while not stop_event.is_set():
+        try:
+            capturer.capture()
+            # print(f"[Snapshot] Saved to {snap_cfg.output_path}")
+        except Exception as e:
+            print(f"[Snapshot] Failed: {e}")
+            
+        stop_event.wait(snap_cfg.interval)
 
 # -------------------------
 # API Endpoints
@@ -197,6 +241,26 @@ def delete_ref(state: str, filename: str):
     else:
         raise HTTPException(404, "File not found")
 
+@app.get("/api/live/frame")
+def get_live_frame():
+    """Get a single current frame for preview"""
+    if not detector_instance:
+        raise HTTPException(500, "Detector not initialized")
+    
+    try:
+        # Capture to a preview specific path to avoid overwriting refs
+        # Or just use the standard capture method which creates temp files?
+        # Capturer usually overwrites a common file or creates new temp?
+        # Let's verify StreamCapturer implementation. Assuming it returns a path.
+        # For efficiency, we might want to just grab the last captured frame if available?
+        # But detector step capture isn't stored publicly.
+        # Let's force a capture.
+        path = detector_instance.capturer.capture()
+        from fastapi.responses import FileResponse
+        return FileResponse(path)
+    except Exception as e:
+        raise HTTPException(500, f"Capture failed: {e}")
+
 # --- Snapshot / Preview ---
 # Existing snapshot API modified to be simpler or keep compatibility
 
@@ -208,7 +272,7 @@ class SnapshotReq(BaseModel):
 
 @app.post("/snapshot/save")
 def save_snapshot(req: SnapshotReq):
-    # Compatibility endpoint
+    # Compatibility endpoint for manual saving
     if not detector_instance:
         raise HTTPException(500, "Detector not initialized")
     
@@ -217,11 +281,16 @@ def save_snapshot(req: SnapshotReq):
     
     saved = []
     try:
-        path = detector_instance.capturer.capture()
-        ts = int(time.time() * 1000)
-        dst = out / f"{req.prefix}_{ts}.jpg"
-        shutil.copy(path, dst)
-        saved.append(str(dst))
+        for i in range(req.count):
+            path = detector_instance.capturer.capture()
+            ts = int(time.time() * 1000)
+            dst = out / f"{req.prefix}_{ts}_{i}.jpg"
+            shutil.copy(path, dst)
+            saved.append(str(dst))
+            
+            if i < req.count - 1 and req.interval_ms > 0:
+                time.sleep(req.interval_ms / 1000.0)
+                
     except Exception as e:
         raise HTTPException(500, f"Snapshot failed: {e}")
         

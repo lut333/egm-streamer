@@ -62,6 +62,7 @@ class Streamer:
         cmd = [
             "/usr/bin/ffmpeg",
             "-hide_banner", "-nostats", "-loglevel", "warning",
+            "-probesize", "32", "-analyzeduration", "0", # Ultra low latency input
             "-progress", "pipe:1",
             "-flags", "low_delay", # Critical
             "-fflags", "+genpts", "-use_wallclock_as_timestamps", "1", # Critical
@@ -77,15 +78,14 @@ class Streamer:
                 "-c:a", "aac", "-b:a", "96k"
             ]
         else:
-             # cmd += ["-an"] # Actually if no audio input, we might just not add audio track
              pass
 
         cmd += [
             "-c:v", "libx264", 
-            "-profile:v", "main", # Fixed to main as per script
+            "-profile:v", "main", 
             "-crf", "18", "-pix_fmt", "yuv420p",
             "-g", str(p.gop), 
-            "-x264-params", f"scenecut=0:keyint={p.gop}:min-keyint={p.gop}", # Critical
+            "-x264-params", f"scenecut=0:keyint={p.gop}:min-keyint={p.gop}", 
             "-tune", p.tune, 
             "-preset", p.preset,
             "-f", "flv", self.config.rtmp_url
@@ -99,7 +99,7 @@ class Streamer:
         self.process = subprocess.Popen(
             cmd, 
             stdout=subprocess.PIPE, 
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT, # Redirect stderr to stdout to avoid deadlock
             universal_newlines=True,
             bufsize=1
         )

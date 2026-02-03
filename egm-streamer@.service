@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-# User=egm-detector
-# Group=egm-detector
+User=user
+Group=user
 # Adjust path to your venv or global python
 # Adjust path to your venv or global python
 ExecStart=/opt/egm-streamer/venv/bin/egm-streamer serve --config /etc/egm-streamer/%i.yaml

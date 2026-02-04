@@ -15,7 +15,16 @@ def load_config(path: str) -> AppConfig:
     
     detector_cfg = app_config.detector
     states = detector_cfg.states
-    
+    base_refs_dir = detector_cfg.base_refs_dir
+
+    # 1. Resolve refs paths
+    if base_refs_dir:
+        for state_config in states.values():
+            p = Path(state_config.refs_dir)
+            if not p.is_absolute():
+                state_config.refs_dir = str(Path(base_refs_dir) / p)
+
+    # 2. Resolve linked ROIs
     for state_name, state_config in states.items():
         for i, roi in enumerate(state_config.rois):
             # Check if this is a linked ROI (has ref_state but missing coords)

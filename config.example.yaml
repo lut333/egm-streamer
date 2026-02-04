@@ -1,5 +1,5 @@
 common:
-  instance_id: "egm-ipc-100"
+  instance_id: "egm-ipc-101"
   log_level: "INFO"
 
 # ------------------------------------------------------------------
@@ -40,8 +40,8 @@ snapshot:
   enabled: true
   target_stream: "game"
   output_path: "/dev/shm/latest.jpg" # In-memory path for zero latency
-  interval: 0.5 # Update frequency (seconds)
-  quality: 8    # FFmpeg -q:v (1-31), 1=Best, 31=Worst. 2-5 is good balance.
+  interval: 1 # Update frequency (seconds)
+  quality: 2    # FFmpeg -q:v (1-31), 1=Best, 31=Worst. 2-5 is good balance.
 
 # ------------------------------------------------------------------
 # Detector: State recognition logic
@@ -65,10 +65,14 @@ detector:
     samples: 3       
     sample_interval: 0.15
 
+  # Optional: Base directory for refs. 
+  # If set, state 'refs_dir' can be relative paths (e.g. "normal" instead of "/var/.../normal")
+  base_refs_dir: "/var/lib/egm-streamer/refs"
+
   # ROI & Reference definitions
   states:
     NORMAL:
-      refs_dir: "/var/lib/egm-streamer/refs/normal"
+      refs_dir: "normal" # Or just "normal" if base_refs_dir is set
       min_match: 1    # Minimum non-required ROIs to match
       threshold: 12   # Hamming distance limit (lower = stricter)
       # One or more ROIs. If required=true, it MUST match.
@@ -82,14 +86,14 @@ detector:
   
 
     SELECT:
-      refs_dir: "/var/lib/egm-streamer/refs/select"
+      refs_dir: "select"
       min_match: 1
       threshold: 10
       rois:
         - {name: "dialog", x: 150, y: 250, w: 80, h: 80, required: true}
 
     PLAYING:
-      refs_dir: "/var/lib/egm-streamer/refs/playing"
+      refs_dir: "playing"
       min_match: 1
       threshold: 12
       rois:
@@ -100,7 +104,7 @@ detector:
   # State Machine / Anti-noise
   debounce:
     confirm_frames: 2  # How many consecutive matches to switch state
-    drop_frames: 6     # How many frames to ignore after switch (cooldown)
+    drop_frames: 8     # How many frames to ignore after switch (cooldown)
     
   output:
     status_file: "/dev/shm/egm-101_detect.json"

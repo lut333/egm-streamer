@@ -83,6 +83,7 @@ class TelegramConfig(BaseModel):
 class DetectorConfigWrapper(BaseModel):
     enabled: bool = True
     target_stream: str = "game"  # Name of the stream to capture from
+    base_refs_dir: Optional[str] = None # Base directory for refs
     
     capture: StreamConfig = Field(default_factory=lambda: StreamConfig(url=""))
     detection: DetectionConfig = Field(default_factory=DetectionConfig)

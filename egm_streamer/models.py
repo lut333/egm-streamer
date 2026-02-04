@@ -7,7 +7,9 @@ class ROI(BaseModel):
     y: int
     w: int
     h: int
+    h: int
     required: bool = False
+    negative: bool = False # If true, matching this ROI adds a penalty distance
 
 class MatchPolicy(BaseModel):
     min_match: int = 1

@@ -44,14 +44,29 @@ class Matcher:
                     min_dist = dist
             
             # Track all distances for averaging
-            total_dist += min_dist
+            contribution = min_dist
+            
+            if roi.negative:
+                if min_dist <= policy.threshold:
+                    # Negative ROI FOUND (Bad) -> Apply penalty
+                    contribution = 100.0 
+                    if roi.required:
+                        required_missed = True # Required to be ABSENT, but was found
+                else:
+                    # Negative ROI NOT FOUND (Good) -> No penalty
+                    contribution = 0.0
+            else:
+                # Normal ROI
+                if min_dist <= policy.threshold:
+                    matched_rois.append(roi.name)
+                    match_count += 1
+                elif roi.required:
+                    required_missed = True
+            
+            total_dist += contribution
             roi_count += 1
             
-            if min_dist <= policy.threshold:
-                matched_rois.append(roi.name)
-                match_count += 1
-            elif roi.required:
-                required_missed = True
+            # if min_dist <= policy.threshold: ... (Removed old logic)
 
         if required_missed:
             # Return actual avg_dist even on required miss (for debugging)

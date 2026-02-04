@@ -28,8 +28,10 @@ class Matcher:
             cropped = img.crop((roi.x, roi.y, roi.x + roi.w, roi.y + roi.h))
             current_hash = compute_hash(cropped, self.algo, self.hash_size)
             
-            # Get refs
-            refs = self.ref_mgr.get_hashes(state_name, roi.name)
+            # Get refs (Use specific state if defined, else current state)
+            target_ref_state = roi.ref_state if roi.ref_state else state_name
+            refs = self.ref_mgr.get_hashes(target_ref_state, roi.name)
+            
             if not refs:
                 # No refs - can't calculate distance
                 if roi.required:

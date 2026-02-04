@@ -10,6 +10,7 @@ class ROI(BaseModel):
     h: int
     required: bool = False
     negative: bool = False # If true, matching this ROI adds a penalty distance
+    ref_state: Optional[str] = None # If set, use refs from this state instead of current state
 
 class MatchPolicy(BaseModel):
     min_match: int = 1

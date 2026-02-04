@@ -19,6 +19,7 @@ class Matcher:
         matched_rois = []
         total_dist = 0.0
         match_count = 0
+        roi_count = 0  # Count of ROIs with refs (for avg calculation)
         
         required_missed = False
 
@@ -30,29 +31,34 @@ class Matcher:
             # Get refs
             refs = self.ref_mgr.get_hashes(state_name, roi.name)
             if not refs:
-                # No refs implies no match possible for this ROI
+                # No refs - can't calculate distance
                 if roi.required:
                     required_missed = True
                 continue
 
             # Find min distance
-            min_dist = 999
+            min_dist = float('inf')
             for r in refs:
                 dist = current_hash - r
                 if dist < min_dist:
                     min_dist = dist
             
+            # Track all distances for averaging
+            total_dist += min_dist
+            roi_count += 1
+            
             if min_dist <= policy.threshold:
                 matched_rois.append(roi.name)
-                total_dist += min_dist
                 match_count += 1
             elif roi.required:
                 required_missed = True
 
         if required_missed:
-            return False, matched_rois, 999.0
+            # Return actual avg_dist even on required miss (for debugging)
+            avg_dist = (total_dist / roi_count) if roi_count > 0 else -1.0
+            return False, matched_rois, avg_dist if avg_dist >= 0 else 999.0
 
-        avg_dist = (total_dist / match_count) if match_count > 0 else 999.0
+        avg_dist = (total_dist / roi_count) if roi_count > 0 else -1.0
         
         is_match = (match_count >= policy.min_match)
         

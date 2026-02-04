@@ -74,7 +74,7 @@ async function updateStatus() {
                     html += `
                         <tr>
                             <td style="padding: 5px; font-weight: bold; color: #eee;">${state}</td>
-                            <td style="padding: 5px; color: ${distColor}; font-family: monospace;">${dist > 900 ? 'N/A' : dist.toFixed(2)}</td>
+                            <td style="padding: 5px; color: ${distColor}; font-family: monospace;">${dist < 0 ? 'No Refs' : dist.toFixed(2)}</td>
                             <td style="padding: 5px;">
                                 ${isMatch 
                                     ? '<span style="color:#2ecc71; font-weight:bold;">✔ MATCH</span>' 

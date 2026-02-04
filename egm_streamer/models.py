@@ -136,5 +136,7 @@ class StreamStatus(BaseModel):
     bitrate: str
     speed: str = "0x"
     frame: int = 0
+    drop_frames: int = 0
+    dup_frames: int = 0
     uptime: float
     last_update: float

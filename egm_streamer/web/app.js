@@ -155,6 +155,8 @@ function renderStreams(streams) {
                 Bitrate: ${status.bitrate}<br>
                 Speed: ${status.speed}<br>
                 Frames: ${status.frame}<br>
+                Drop: ${status.drop_frames || 0}<br>
+                Dup: ${status.dup_frames || 0}<br>
                 PID: ${status.pid || '-'}
             </div>
             <div class="controls">

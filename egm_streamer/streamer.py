@@ -151,6 +151,16 @@ class Streamer:
                 self.status.frame = int(v)
                 updated = True
             except: pass
+        elif k == "drop_frames":
+            try:
+                self.status.drop_frames = int(v)
+                updated = True
+            except: pass
+        elif k == "dup_frames":
+            try:
+                self.status.dup_frames = int(v)
+                updated = True
+            except: pass
         elif k == "progress" and v == "continue":
             self.status.uptime = time.time() - self.start_time
             self.status.last_update = time.time()

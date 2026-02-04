@@ -1,5 +1,5 @@
 common:
-  instance_id: "egm-ipc-01"
+  instance_id: "egm-ipc-100"
   log_level: "INFO"
 
 # ------------------------------------------------------------------
@@ -12,10 +12,10 @@ streams:
     audio_device: "plughw:CARD=Video,DEV=0"
     resolution: "640x480"
     fps: 30
-    bitrate: "2500k"  # Recommended: 1500k-3000k for 640x480
-    rtmp_url: "rtmp://192.168.43.10/game/101"
+    bitrate: "3000k"  # Recommended: 1500k-3000k for 640x480
+    rtmp_url: "rtmp://192.168.43.10/game/101?vhost=<>&token=<>"
     ffmpeg_params:
-      preset: "ultrafast"
+      preset: "superfast" # ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
       tune: "zerolatency"
       gop: 30
       extra_flags: [] # Additional FFmpeg flags if needed
@@ -27,9 +27,9 @@ streams:
     resolution: "640x480"
     fps: 30
     bitrate: "1500k"  # Lower for camera-only stream
-    rtmp_url: "rtmp://192.168.1.100:1935/game/101_cam"
+    rtmp_url: "rtmp://192.168.43.10/game/101_cam?vhost=<>&token=<>"
     ffmpeg_params:
-      preset: "ultrafast"
+      preset: "superfast" # ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
       tune: "zerolatency"
       gop: 30
 
@@ -40,8 +40,8 @@ snapshot:
   enabled: true
   target_stream: "game"
   output_path: "/dev/shm/latest.jpg" # In-memory path for zero latency
-  interval: 1.0 # Update frequency (seconds)
-  quality: 2    # FFmpeg -q:v (1-31), 1=Best, 31=Worst. 2-5 is good balance.
+  interval: 0.5 # Update frequency (seconds)
+  quality: 8    # FFmpeg -q:v (1-31), 1=Best, 31=Worst. 2-5 is good balance.
 
 # ------------------------------------------------------------------
 # Detector: State recognition logic
@@ -68,26 +68,27 @@ detector:
   # ROI & Reference definitions
   states:
     NORMAL:
-      refs_dir: "/var/lib/egm-detector/refs/normal"
+      refs_dir: "/var/lib/egm-streamer/refs/normal"
+      min_match: 1    # Minimum non-required ROIs to match
+      threshold: 12   # Hamming distance limit (lower = stricter)
       # One or more ROIs. If required=true, it MUST match.
       rois:
         - {name: "main", x: 100, y: 200, w: 50, h: 50, required: true}
-      min_match: 1    # Minimum non-required ROIs to match
-      threshold: 12   # Hamming distance limit (lower = stricter)
+  
 
     SELECT:
-      refs_dir: "/var/lib/egm-detector/refs/select"
-      rois:
-        - {name: "dialog", x: 150, y: 250, w: 80, h: 80, required: true}
+      refs_dir: "/var/lib/egm-streamer/refs/select"
       min_match: 1
       threshold: 10
+      rois:
+        - {name: "dialog", x: 150, y: 250, w: 80, h: 80, required: true}
 
     PLAYING:
-      refs_dir: "/var/lib/egm-detector/refs/playing"
-      rois:
-        - {name: "counter", x: 100, y: 150, w: 100, h: 50}
+      refs_dir: "/var/lib/egm-streamer/refs/playing"
       min_match: 1
       threshold: 12
+      rois:
+        - {name: "counter", x: 100, y: 150, w: 100, h: 50}
 
   priority: [SELECT, PLAYING, NORMAL]
   

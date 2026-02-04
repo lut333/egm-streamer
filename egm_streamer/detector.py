@@ -1,29 +1,38 @@
+import io
 import time
 import json
 import os
+from pathlib import Path
 from typing import Optional, Dict
 
+from PIL import Image
+
 from .models import AppConfig, DetectionResult, MatchResult
-from .capture import StreamCapturer
 from .refs import ReferenceManager
 from .matcher import Matcher
 from .state_machine import StateMachine
 from .notifier import TelegramNotifier
 
+
 class EgmStateDetector:
+    """
+    State detector that reads from snapshot service's output file.
+    
+    IMPORTANT: This detector does NOT capture screenshots itself.
+    It requires the snapshot service to be enabled and running.
+    The snapshot service writes to config.snapshot.output_path,
+    and the detector reads from that file for state matching.
+    """
+    
     def __init__(self, config: AppConfig):
         self.config = config
         det_cfg = config.detector
         
-        # Resolve capture URL from target stream if specified
-        if det_cfg.target_stream and det_cfg.target_stream in config.streams:
-            stream_cfg = config.streams[det_cfg.target_stream]
-            # Override capture URL with the stream's output URL
-            # Note: This assumes detector can read from the RTMP output of the streamer
-            if not det_cfg.capture.url:
-                det_cfg.capture.url = stream_cfg.rtmp_url
+        # Use snapshot service's output path for reading images
+        self.snapshot_path = Path(config.snapshot.output_path)
+        if not config.snapshot.enabled:
+            print("[Detector] WARNING: Snapshot service is disabled! Detector requires it to function.")
         
-        self.capturer = StreamCapturer(det_cfg.capture)
         self.ref_mgr = ReferenceManager(det_cfg.states, det_cfg.detection)
         self.matcher = Matcher(self.ref_mgr, det_cfg.detection.algo, det_cfg.detection.hash_size)
         self.sm = StateMachine(det_cfg.debounce)
@@ -34,6 +43,22 @@ class EgmStateDetector:
         
         # Initial load
         self.ref_mgr.load_all()
+    
+    def _read_snapshot_image(self) -> Image.Image:
+        """
+        Read the latest snapshot image produced by snapshot service.
+        Uses atomic read to avoid reading a partial image during write.
+        """
+        if not self.snapshot_path.exists():
+            raise FileNotFoundError(f"Snapshot file not found: {self.snapshot_path}")
+        
+        # Read entire file into memory first (atomic read pattern)
+        with open(self.snapshot_path, "rb") as f:
+            data = f.read()
+        
+        img = Image.open(io.BytesIO(data))
+        img.load()  # Force decode to catch truncated images
+        return img.convert("L")  # Convert to grayscale
 
     def step(self) -> DetectionResult:
         """執行一次完整的偵測流程"""
@@ -41,23 +66,14 @@ class EgmStateDetector:
         # 0. Check refs update
         self.ref_mgr.reload_if_needed()
 
-        # 1. Capture & Average
-        # 依照 config.detection.samples 進行採樣 (如果需要多張平均)
-        # 這裡簡化：只抓一張，或者在 detector 內做多張 loop
-        # 用戶需求有提到 samples, 這裡簡單實作
-        
+        # 1. Read snapshot image (produced by snapshot service)
         matches_summary: Dict[str, MatchResult] = {}
         
-        # 簡單策略：只抓一張做代表，如果需要抗噪，應該在 capture 層或這裡做多張投票
-        # 根據 freegame_classify.py 的邏輯，它是抓 samples 張取 best-k mean
-        # 這裡我們採用：抓一張，依靠 StateMachine 去濾除雜訊 (debounce)
-        # 如果用戶需要單幀抗噪，可以在這裡 loop
-        
         try:
-            img = self.capturer.get_image()
+            img = self._read_snapshot_image()
         except Exception as e:
-            # Capture failed
-            print(f"[Detector] Capture failed: {e}")
+            # Snapshot read failed (file not found, corrupt image, etc.)
+            print(f"[Detector] Snapshot read failed: {e}")
             return DetectionResult(
                 state="UNKNOWN",
                 matches={},

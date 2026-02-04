@@ -25,7 +25,18 @@ stop_event = threading.Event()
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
+    # Startup: Ensure refs directories exist
+    if app_config and app_config.detector.enabled:
+        for state_name, state_cfg in app_config.detector.states.items():
+            refs_dir = Path(state_cfg.refs_dir)
+            if not refs_dir.exists():
+                try:
+                    refs_dir.mkdir(parents=True, exist_ok=True)
+                    print(f"[Startup] Created refs dir: {refs_dir}")
+                except Exception as e:
+                    print(f"[Startup] Failed to create refs dir {refs_dir}: {e}")
+    
+    # Start detector loop
     if detector_instance and detector_instance.config.detector.enabled:
         detect_thread = threading.Thread(target=detection_loop, daemon=True)
         detect_thread.start()
@@ -256,27 +267,16 @@ def delete_ref(state: str, filename: str):
 
 @app.get("/api/live/frame")
 def get_live_frame():
-    """Get a single current frame for preview"""
-    # If detector is running, use its capturer (likely dedicated/configured)
-    if detector_instance:
-        try:
-            path = detector_instance.capturer.capture()
-            from fastapi.responses import FileResponse
-            return FileResponse(path)
-        except Exception as e:
-            raise HTTPException(500, f"Capture failed: {e}")
-            
-    # If snapshot service is running, we could potentially reuse that capturer?
-    # But snapshot service runs in a loop.
-    # For now, require detector or create a temporary capturer?
-    # Let's fallback to creating a capturer if streams are available
-    if app_config and app_config.snapshot.enabled:
-         # This is tricky because we don't have easy access to the capturer instance in snapshot_loop.
-         # But the user asked for this endpoint specifically for debugging detection.
-         # If detection is disabled, they probably don't need "match preview".
-         pass
-
-    raise HTTPException(500, "Detector not initialized")
+    """Get the latest snapshot frame for preview (from snapshot service)"""
+    if not app_config or not app_config.snapshot.enabled:
+        raise HTTPException(404, "Snapshot service disabled")
+    
+    path = Path(app_config.snapshot.output_path)
+    if not path.exists():
+        raise HTTPException(404, "Snapshot not yet available")
+    
+    from fastapi.responses import FileResponse
+    return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "no-cache"})
 
 # --- Snapshot / Preview ---
 
@@ -288,14 +288,13 @@ class SnapshotReq(BaseModel):
 
 @app.post("/snapshot/save")
 def save_snapshot(req: SnapshotReq):
-    # Compatibility endpoint for manual saving
-    if not detector_instance:
-       # Fallback: try to use app_config if available to create a temporary capturer?
-       # The user likely wants to snapshot even if detector is off.
-       pass
-       
-    if not detector_instance:
-        raise HTTPException(500, "Detector not initialized")
+    """Save current snapshot(s) to specified directory"""
+    if not app_config or not app_config.snapshot.enabled:
+        raise HTTPException(400, "Snapshot service is disabled")
+    
+    snap_path = Path(app_config.snapshot.output_path)
+    if not snap_path.exists():
+        raise HTTPException(404, "Snapshot not yet available")
     
     out = Path(req.output_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -303,17 +302,16 @@ def save_snapshot(req: SnapshotReq):
     saved = []
     try:
         for i in range(req.count):
-            path = detector_instance.capturer.capture()
             ts = int(time.time() * 1000)
             dst = out / f"{req.prefix}_{ts}_{i}.jpg"
-            shutil.copy(path, dst)
+            shutil.copy(snap_path, dst)
             saved.append(str(dst))
             
             if i < req.count - 1 and req.interval_ms > 0:
                 time.sleep(req.interval_ms / 1000.0)
                 
     except Exception as e:
-        raise HTTPException(500, f"Snapshot failed: {e}")
+        raise HTTPException(500, f"Snapshot save failed: {e}")
         
     return {"saved": len(saved), "files": saved}
 

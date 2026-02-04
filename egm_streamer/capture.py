@@ -9,7 +9,7 @@ class CaptureError(Exception):
     pass
 
 class StreamCapturer:
-    def __init__(self, config: StreamConfig, output_path: str = "/dev/shm/snap.jpg"):
+    def __init__(self, config: StreamConfig, output_path: str = "/dev/shm/latest.jpg"):
         self.config = config
         self.output_path = Path(output_path)
         self.tmp_path = self.output_path.with_suffix(".tmp.jpg")

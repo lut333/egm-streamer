@@ -15,6 +15,11 @@ RestartSec=5
 # Create runtime dir for status files if needed
 RuntimeDirectory=egm-streamer/%i
 RuntimeDirectoryMode=0755
+
+# Create state dir for refs (persistent across reboots)
+StateDirectory=egm-streamer
+StateDirectoryMode=0755
+
 Environment=PYTHONUNBUFFERED=1
 
 [Install]

@@ -18,7 +18,16 @@ class StateConfig(BaseModel):
     name: Optional[str] = None  # NORMAL, SELECT, PLAYING (Optional, usually inferred from dict key)
     refs_dir: str
     rois: List[ROI]
-    match_policy: MatchPolicy = Field(default_factory=MatchPolicy)
+    # Direct config (matches config.example.yaml)
+    min_match: int = 1
+    threshold: int = 12
+    # Alias for compatibility
+    exclude_if_match: List[str] = Field(default_factory=list)
+    
+    @property
+    def match_policy(self) -> MatchPolicy:
+        """Convert direct fields to MatchPolicy for backward compatibility"""
+        return MatchPolicy(min_match=self.min_match, threshold=self.threshold)
 
 class StreamConfig(BaseModel):
     url: Optional[str] = None

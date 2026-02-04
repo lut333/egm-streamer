@@ -75,7 +75,11 @@ class Matcher:
 
         avg_dist = (total_dist / roi_count) if roi_count > 0 else -1.0
         
-        is_match = (match_count >= policy.min_match)
+        # CORRECT LOGIC START
+        # A match is valid ONLY if the overall average distance is within the threshold.
+        # This allows negative ROIs (which add +100 distance) to effectively fail the match.
+        is_match = (match_count >= policy.min_match) and (avg_dist <= policy.threshold)
+        # CORRECT LOGIC END
         
         # Additional check: max_match (if set, though usually min_match is the concern)
         if policy.max_match > 0 and match_count > policy.max_match:

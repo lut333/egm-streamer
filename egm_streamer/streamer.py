@@ -127,6 +127,9 @@ class Streamer:
     def _parse_progress(self, line: str):
         parts = line.split("=", 1)
         if len(parts) != 2:
+            # Not a progress line - could be an error or warning, log it
+            if line:
+                print(f"[Streamer:{self.name}] FFmpeg: {line}")
             return
         
         k, v = parts[0].strip(), parts[1].strip()

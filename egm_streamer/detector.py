@@ -99,46 +99,32 @@ class EgmStateDetector:
                 is_match=is_match
             )
         
-        # 3. Choose best candidate with SMART SELECTION logic
-        # Strategy:
-        #   a. Find all matching states (is_match=True)
-        #   b. If current state is among matches AND has good distance -> prefer it (state locking)
-        #   c. Otherwise, pick the state with BEST (lowest) avg_distance
-        #   d. If tied, use priority order as tiebreaker
+        # 3. Choose best candidate with STATE LOCKING + PRIORITY logic:
+        #    - If CURRENT state still matches → stay in it (state locking)
+        #    - When switching: use PRIORITY order (SELECT > PLAYING > NORMAL)
+        #    - This follows game flow: NORMAL → SELECT → PLAYING → NORMAL
         
-        current_sm_state = self.sm.current_state
         best_candidate = "OTHER"
+        det_cfg = self.config.detector
+        current_sm_state = self.sm.current_state
         
-        # Collect all matching states with their distances
-        matching_states = []
+        # Collect all matching states
+        matching_states = set()
         for state_name, match_result in matches_summary.items():
             if match_result.is_match:
-                matching_states.append((state_name, match_result.avg_distance))
+                matching_states.add(state_name)
         
         if matching_states:
-            # Sort by distance (ascending = best first)
-            matching_states.sort(key=lambda x: x[1])
-            best_by_distance = matching_states[0][0]
-            best_distance = matching_states[0][1]
-            
-            # State locking: if current state is matching and distance is close to best (within 3)
-            current_state_distance = None
-            for state_name, dist in matching_states:
-                if state_name == current_sm_state:
-                    current_state_distance = dist
-                    break
-            
-            if current_state_distance is not None:
-                # Current state is matching - check if it's close enough to the best
-                if current_state_distance <= best_distance + 3:
-                    # Prefer current state to prevent flickering
-                    best_candidate = current_sm_state
-                else:
-                    # Current state is significantly worse, switch to best
-                    best_candidate = best_by_distance
+            # Check if current state is among the matches (state locking)
+            if current_sm_state in matching_states:
+                # Current state still matches - keep it
+                best_candidate = current_sm_state
             else:
-                # Current state doesn't match, use the best by distance
-                best_candidate = best_by_distance
+                # Current state doesn't match - switch by PRIORITY order
+                for state_name in det_cfg.priority:
+                    if state_name in matching_states:
+                        best_candidate = state_name
+                        break
 
         # 4. State Machine Update
         final_state = self.sm.update(best_candidate)

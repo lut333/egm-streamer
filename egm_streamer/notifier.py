@@ -12,6 +12,11 @@ class TelegramNotifier:
     def send_state_change(self, prev_state: str, new_state: str):
         if not self.config.enabled or not self.config.bot_token or not self.config.chat_id:
             return
+            
+        # Check specific notification states
+        if self.config.notify_states:
+            if new_state not in self.config.notify_states:
+                return
         
         # State descriptions
         state_info = {

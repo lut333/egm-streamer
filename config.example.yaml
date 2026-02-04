@@ -115,6 +115,8 @@ detector:
     bot_token: "123456789:AAHxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     chat_id: "-1001234567890"
     client_id: null # Optional, defaults to common.instance_id
+    # Optional: Only notify on specific states (e.g. only when FREE_GAME starts)
+    # notify_states: ["PLAYING", "SELECT"]
 
 api:
   host: "0.0.0.0"

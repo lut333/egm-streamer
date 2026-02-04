@@ -79,6 +79,7 @@ class TelegramConfig(BaseModel):
     bot_token: str = ""
     chat_id: str = ""
     client_id: Optional[str] = None # Optional override, otherwise use common.instance_id
+    notify_states: Optional[List[str]] = None # List of states to notify on. If None or empty, notify on all.
 
 class DetectorConfigWrapper(BaseModel):
     enabled: bool = True

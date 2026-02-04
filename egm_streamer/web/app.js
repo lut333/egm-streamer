@@ -4,7 +4,49 @@ let currentTab = 'NORMAL';
 // Status Polling
 setInterval(updateStatus, 2000);
 updateStatus();
-loadRefs(currentTab);
+initTabs();
+
+async function initTabs() {
+    try {
+        const res = await fetch(`${API_BASE}/api/config/states`);
+        const data = await res.json();
+        const states = data.states || [];
+        
+        if (states.length > 0) {
+            const tabsContainer = document.querySelector('.tabs');
+            if (tabsContainer) {
+                tabsContainer.innerHTML = ''; // Clear hardcoded tabs
+                
+                states.forEach((state, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'tab';
+                    btn.textContent = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase(); // Capitalize
+                    btn.onclick = () => switchTab(state);
+                    tabsContainer.appendChild(btn);
+                    
+                    if (index === 0) {
+                        // Default to first tab
+                        currentTab = state;
+                        btn.classList.add('active');
+                    }
+                });
+                
+                // Load refs for the initial tab
+                loadRefs(currentTab);
+                
+                // Update capture text
+                if(window.switchTab) { 
+                     // Manually trigger the side effect of updating capture text
+                     document.getElementById('capture-target-name').innerText = currentTab;
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Failed to load states:", e);
+        // Fallback or leave hardcoded tabs as backup
+        loadRefs(currentTab);
+    }
+}
 
 // Live Preview (Detector)
 const liveImg = document.getElementById('live-img');

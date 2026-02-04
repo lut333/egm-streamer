@@ -45,6 +45,10 @@ class Matcher:
                 if dist < min_dist:
                     min_dist = dist
             
+            # Debug negative ROI
+            if roi.negative:
+                print(f"[Matcher] State:{state_name} ROI:{roi.name} IsNegative:True TargetRef:{target_ref_state} MinDist:{min_dist} Thresh:{policy.threshold}")
+
             # Track all distances for averaging
             contribution = min_dist
             

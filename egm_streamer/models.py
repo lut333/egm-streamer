@@ -3,11 +3,10 @@ from pydantic import BaseModel, Field
 
 class ROI(BaseModel):
     name: str
-    x: int
-    y: int
-    w: int
-    h: int
-    h: int
+    x: Optional[int] = None
+    y: Optional[int] = None
+    w: Optional[int] = None
+    h: Optional[int] = None
     required: bool = False
     negative: bool = False # If true, matching this ROI adds a penalty distance
     ref_state: Optional[str] = None # If set, use refs from this state instead of current state

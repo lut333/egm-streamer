@@ -80,11 +80,9 @@ class EgmStateDetector:
                 timestamp=time.time()
             )
 
-        # 2. Match all states
-        best_candidate = "OTHER"
+        # 2. Match all states (collect results first, then decide)
         det_cfg = self.config.detector
         
-        # 依優先順序比對
         for state_name in det_cfg.priority:
             state_cfg = det_cfg.states.get(state_name)
             if not state_cfg: 
@@ -100,13 +98,49 @@ class EgmStateDetector:
                 avg_distance=avg_dist,
                 is_match=is_match
             )
+        
+        # 3. Choose best candidate with SMART SELECTION logic
+        # Strategy:
+        #   a. Find all matching states (is_match=True)
+        #   b. If current state is among matches AND has good distance -> prefer it (state locking)
+        #   c. Otherwise, pick the state with BEST (lowest) avg_distance
+        #   d. If tied, use priority order as tiebreaker
+        
+        current_sm_state = self.sm.current_state
+        best_candidate = "OTHER"
+        
+        # Collect all matching states with their distances
+        matching_states = []
+        for state_name, match_result in matches_summary.items():
+            if match_result.is_match:
+                matching_states.append((state_name, match_result.avg_distance))
+        
+        if matching_states:
+            # Sort by distance (ascending = best first)
+            matching_states.sort(key=lambda x: x[1])
+            best_by_distance = matching_states[0][0]
+            best_distance = matching_states[0][1]
             
-            # 如果還沒找到最佳候選且這個中了，就設為候選
-            # 因為是按優先順序跑的，所以第一個中的就是最佳候選
-            if best_candidate == "OTHER" and is_match:
-                best_candidate = state_name
+            # State locking: if current state is matching and distance is close to best (within 3)
+            current_state_distance = None
+            for state_name, dist in matching_states:
+                if state_name == current_sm_state:
+                    current_state_distance = dist
+                    break
+            
+            if current_state_distance is not None:
+                # Current state is matching - check if it's close enough to the best
+                if current_state_distance <= best_distance + 3:
+                    # Prefer current state to prevent flickering
+                    best_candidate = current_sm_state
+                else:
+                    # Current state is significantly worse, switch to best
+                    best_candidate = best_by_distance
+            else:
+                # Current state doesn't match, use the best by distance
+                best_candidate = best_by_distance
 
-        # 3. State Machine Update
+        # 4. State Machine Update
         final_state = self.sm.update(best_candidate)
         
         result = DetectionResult(

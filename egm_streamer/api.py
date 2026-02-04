@@ -130,7 +130,6 @@ def get_state():
         with open(path, "r") as f:
             return json.load(f)
     except Exception as e:
-    except Exception as e:
         return {"error": str(e), "state": "UNKNOWN"}
 
 @app.get("/api/config/states")

@@ -99,14 +99,10 @@ class EgmStateDetector:
                 is_match=is_match
             )
         
-        # 3. Choose best candidate with STATE LOCKING + PRIORITY logic:
-        #    - If CURRENT state still matches → stay in it (state locking)
-        #    - When switching: use PRIORITY order (SELECT > PLAYING > NORMAL)
-        #    - This follows game flow: NORMAL → SELECT → PLAYING → NORMAL
+        # 3. Choose best candidate by PRIORITY order
+        #    Priority: [SELECT, PLAYING, NORMAL] - first match wins
         
         best_candidate = "OTHER"
-        det_cfg = self.config.detector
-        current_sm_state = self.sm.current_state
         
         # Collect all matching states
         matching_states = set()
@@ -114,17 +110,11 @@ class EgmStateDetector:
             if match_result.is_match:
                 matching_states.add(state_name)
         
-        if matching_states:
-            # Check if current state is among the matches (state locking)
-            if current_sm_state in matching_states:
-                # Current state still matches - keep it
-                best_candidate = current_sm_state
-            else:
-                # Current state doesn't match - switch by PRIORITY order
-                for state_name in det_cfg.priority:
-                    if state_name in matching_states:
-                        best_candidate = state_name
-                        break
+        # Simply choose by priority order - higher priority always wins
+        for state_name in det_cfg.priority:
+            if state_name in matching_states:
+                best_candidate = state_name
+                break
 
         # 4. State Machine Update
         final_state = self.sm.update(best_candidate)

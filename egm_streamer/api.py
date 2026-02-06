@@ -15,12 +15,13 @@ from .config import AppConfig
 from .detector import EgmStateDetector
 from .streamer import Streamer
 from .models import StreamStatus
-from .capture import StreamCapturer, StreamConfig as CapturerStreamConfig
+from .capture import StreamCapturer, PersistentCapturer, StreamConfig as CapturerStreamConfig
 
 # Global references
 detector_instance: Optional[EgmStateDetector] = None
 app_config: Optional[AppConfig] = None
 streamers: Dict[str, Streamer] = {}
+persistent_capturer: Optional[PersistentCapturer] = None
 stop_event = threading.Event()
 
 @contextlib.asynccontextmanager
@@ -85,11 +86,15 @@ def detection_loop():
         stop_event.wait(sleep_time)
 
 def snapshot_loop():
-    global app_config
+    """
+    持久化截圖迴圈：使用單一 FFmpeg 進程持續截圖
+    只建立一次 SRS 連線，大幅減少 on_play/on_stop 事件
+    """
+    global app_config, persistent_capturer
     if not app_config: return
 
     snap_cfg = app_config.snapshot
-    print(f"Background snapshot loop started. Target: {snap_cfg.target_stream}, Interval: {snap_cfg.interval}")
+    print(f"[Snapshot] Starting persistent snapshot service. Target: {snap_cfg.target_stream}, Interval: {snap_cfg.interval}s")
     
     # Resolve capture URL
     url = snap_cfg.url
@@ -102,18 +107,25 @@ def snapshot_loop():
         print("[Snapshot] Error: No URL found for snapshot service")
         return
 
-    # Use configured quality and scale
+    # Create persistent capturer (single long-running FFmpeg process)
     sc = CapturerStreamConfig(url=url, scale="640:-1", quality=snap_cfg.quality) 
-    capturer = StreamCapturer(sc, snap_cfg.output_path)
+    persistent_capturer = PersistentCapturer(sc, snap_cfg.output_path, snap_cfg.interval)
     
+    # Start the persistent FFmpeg process
+    if not persistent_capturer.start():
+        print("[Snapshot] Failed to start persistent capturer")
+        return
+    
+    # Monitor loop: just ensure the process is running, auto-restart if needed
     while not stop_event.is_set():
-        try:
-            capturer.capture()
-            # print(f"[Snapshot] Saved to {snap_cfg.output_path}")
-        except Exception as e:
-            print(f"[Snapshot] Failed: {e}")
-            
-        stop_event.wait(snap_cfg.interval)
+        persistent_capturer.ensure_running()
+        # Check every 5 seconds (not every capture interval)
+        stop_event.wait(5.0)
+    
+    # Cleanup on shutdown
+    print("[Snapshot] Stopping persistent capturer...")
+    persistent_capturer.stop()
+    persistent_capturer = None
 
 # -------------------------
 # API Endpoints
